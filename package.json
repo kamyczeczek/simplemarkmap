@@ -9,6 +9,7 @@
     "start": "electron .",
     "test": "node tests/test-relpath.js",
     "test:e2e": "node tests/test-e2e.js",
+    "test:desktop": "node tests/test-electron-desktop.js",
     "dist": "electron-builder --win nsis",
     "pack": "electron-builder --dir",
     "build:safe": "electron-builder --win nsis --config.directories.output=C:\\sm-build\\out"
