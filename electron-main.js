@@ -13,10 +13,8 @@ function findFileArg(argv) {
 // of the launched .md file, or the default maps/ folder.
 pendingFile = findFileArg(process.argv);
 if (pendingFile) {
-  // Always root the picker at the filesystem root so the user can browse
-  // the entire drive. The double-clicked file is still opened directly.
-  const absoluteFile = path.resolve(pendingFile);
-  process.env.SIMPLEMARKMAP_ROOT = path.dirname(absoluteFile);
+  // Root the picker at the folder of the clicked .md file.
+  process.env.SIMPLEMARKMAP_ROOT = path.dirname(path.resolve(pendingFile));
 }
 
 const serverModule = require("./server");
@@ -54,9 +52,9 @@ function waitForServer() {
 
 function fileUrl(filePath) {
   if (!filePath) return `http://127.0.0.1:${serverModule.PORT}/`;
-  // Send the path relative to the filesystem root so the server can locate it
+  // Root the path relative to the markdown root set by the Electron main process.
   const absoluteFile = path.resolve(filePath);
-  const root = path.parse(absoluteFile).root;
+  const root = process.env.SIMPLEMARKMAP_ROOT || path.parse(absoluteFile).root;
   const relative = path.relative(root, absoluteFile).replace(/\\/g, "/");
   return `http://127.0.0.1:${serverModule.PORT}/?file=${encodeURIComponent(relative)}`;
 }

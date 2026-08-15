@@ -23,9 +23,10 @@ function resolveArgvRoot() {
 }
 
 function defaultRoot() {
-  // Allow browsing the whole filesystem from the drive root so the picker's
-  // "up" button can reach the filesystem root (e.g. C:\).
-  return path.parse(process.cwd()).root;
+  // Root defaults to the directory where server.js lives, not the system root.
+  // This keeps the picker scoped to a sensible location while still allowing
+  // an explicit override via argv or SIMPLEMARKMAP_ROOT.
+  return path.resolve(__dirname);
 }
 
 const ROOT = path.resolve(resolveArgvRoot() || process.env.SIMPLEMARKMAP_ROOT || defaultRoot());

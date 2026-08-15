@@ -47,9 +47,9 @@ if defined FILE_ARG (
 ) else if defined DIR_ARG (
   set "SERVER_DIR=%DIR_ARG%"
 ) else (
-  rem Use the drive root so the picker can browse all the way to C:\.
+  rem Use the project folder as the default server directory.
   rem Open initially in this project folder.
-  set SERVER_DIR=C:\
+  set SERVER_DIR="%~dp0"
   set "START_DIR=%~dp0"
   set "START_DIR=!START_DIR:~3!"
   set "START_DIR=!START_DIR:\=/!"
