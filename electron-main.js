@@ -16,7 +16,7 @@ if (pendingFile) {
   // Always root the picker at the filesystem root so the user can browse
   // the entire drive. The double-clicked file is still opened directly.
   const absoluteFile = path.resolve(pendingFile);
-  process.env.SIMPLEMARKMAP_ROOT = path.parse(absoluteFile).root;
+  process.env.SIMPLEMARKMAP_ROOT = path.dirname(absoluteFile);
 }
 
 const serverModule = require("./server");
