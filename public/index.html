@@ -546,7 +546,16 @@ async function loadDir(dir) {
         let pickerOnSelect = null;        // callback(filePath) when in insert mode
         let pickerReturnFocus = null;     // editor element to refocus after closing
 
-        document.getElementById("openBtn").onclick = () => showPicker();
+        document.getElementById("openBtn").onclick = async () => {
+            try {
+                const relativePath = await window.electronAPI.openSystemDialog();
+                if (relativePath) {
+                    openFile(relativePath);
+                }
+            } catch (err) {
+                alert("Cannot open file: " + (err && err.message ? err.message : err));
+            }
+        };
         document.getElementById("cancelPick").onclick = () => hidePicker();
         document.getElementById("navUp").onclick = () => {
             // Determine if we are currently at the root folder.
@@ -611,29 +620,26 @@ async function loadDir(dir) {
             }
         };
 
-        // showPicker({ onSelect }) — if onSelect is given, the picker runs in
-        // INSERT mode (returns the chosen file path via onSelect instead of
-        // navigating). Otherwise it behaves as before (open mode).
-        function showPicker(opts) {
+        // File selection is deliberately delegated to Electron's native OS
+        // dialog.  Do not reopen the old in-page file browser here: on Windows
+        // it looked like Explorer, but it was only an HTML overlay.
+        async function showPicker(opts) {
             opts = opts || {};
-            pickerOnSelect = opts.onSelect || null;
-            const ni = document.getElementById("newFileName");
-            if (ni) ni.value = "";
-            document.getElementById("picker").classList.remove("hidden");
-            loadDir(cwd);
+            try {
+                const filePath = await window.electronAPI.openSystemDialog();
+                if (!filePath) return;
+                if (opts.onSelect) opts.onSelect(filePath);
+                else await openFile(filePath);
+            } catch (err) {
+                alert("Cannot open file: " + (err && err.message ? err.message : err));
+            }
         }
 
         function hidePicker() {
             document.getElementById("picker").classList.add("hidden");
             state.pickerOpen = false;
-            if (pickerOnSelect) {
-                // Insert mode was cancelled: restore the editor without committing.
-                pickerOnSelect = null;
-                if (pickerReturnFocus && document.contains(pickerReturnFocus)) {
-                    pickerReturnFocus.focus({ preventScroll: true });
-                }
-                pickerReturnFocus = null;
-            }
+            pickerOnSelect = null;
+            pickerReturnFocus = null;
         }
 
         function escapeHtml(s) {
@@ -1892,21 +1898,20 @@ async function loadDir(dir) {
             const div = findDiv(root, n);
             const editorEl = div ? div.querySelector(".title") : null;
             pickerReturnFocus = editorEl;
-            state.pickerOpen = true;
-            showPicker({
-                onSelect: (filePath) => {
-                    // Self-link guard.
-                    if (currentFile && normalizePath(filePath) === normalizePath(currentFile)) {
-                        return;
-                    }
-                    const label = basenameOf(filePath).replace(/\.md$/, "") || basenameOf(filePath);
-                    const rel = relPath(currentFile || "", filePath);
-                    const link = `[${label}](${rel})`;
-                    if (editorEl && document.contains(editorEl)) {
-                        insertAtCaret(editorEl, link);
-                    }
+            // Use the native OS file picker instead of the custom HTML picker.
+            window.electronAPI.openLinkDialog().then((filePath) => {
+                if (!filePath) return;
+                // Self-link guard.
+                if (currentFile && normalizePath(filePath) === normalizePath(currentFile)) {
+                    return;
                 }
-            });
+                const label = basenameOf(filePath).replace(/\.md$/, "") || basenameOf(filePath);
+                const rel = relPath(currentFile || "", filePath);
+                const link = `[${label}](${rel})`;
+                if (editorEl && document.contains(editorEl)) {
+                    insertAtCaret(editorEl, link);
+                }
+            }).catch(() => {});
         }
 
         function onNodeKey(e, div) {
@@ -2317,7 +2322,11 @@ async function loadDir(dir) {
             if (initialFile) {
                 openFile(initialFile);
             } else {
-                showPicker();
+                hidePicker();
+                // Everything goes through the native OS file picker.
+                window.electronAPI.openSystemDialog().then((rel) => {
+                    if (rel) openFile(rel);
+                }).catch(() => {});
             }
         });
     </script>

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 const path = require("path");
 const http = require("http");
 
@@ -22,11 +22,54 @@ if (pendingFile) {
   process.env.SIMPLEMARKMAP_ROOT = path.resolve(__dirname);
 }
 
-const serverModule = require("./server");
+// IPC handler for system file dialog. Returns a path relative to the markdown
+// root (which is updated to the chosen file's directory so the HTTP server can
+// serve it), or null if the user cancelled.
+ipcMain.handle("select-file", async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openFile"],
+    filters: [
+      { name: "Markdown documents", extensions: ["md"] },
+      { name: "All files", extensions: ["*"] }
+    ]
+  });
+
+  if (result.canceled || !result.filePaths.length) {
+    return null;
+  }
+
+  const absoluteFile = path.resolve(result.filePaths[0]);
+  // Repoint the server root at the chosen file's folder so it can be served.
+  process.env.SIMPLEMARKMAP_ROOT = path.dirname(absoluteFile);
+  const relative = path.basename(absoluteFile);
+  return relative;
+});
+
+// IPC handler for the "Link to file…" feature. Returns the chosen file's path
+// relative to the CURRENT markdown root WITHOUT changing the root, so it can be
+// inserted as a relative link from the currently open file.
+ipcMain.handle("select-link-target", async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openFile"],
+    filters: [
+      { name: "Markdown documents", extensions: ["md"] },
+      { name: "All files", extensions: ["*"] }
+    ]
+  });
+
+  if (result.canceled || !result.filePaths.length) {
+    return null;
+  }
+
+  const absoluteFile = path.resolve(result.filePaths[0]);
+  const root = process.env.SIMPLEMARKMAP_ROOT || path.parse(absoluteFile).root;
+  return path.relative(root, absoluteFile).replace(/\\/g, "/");
+});
 
 // Start the existing HTTP server in this process (Electron's bundled Node),
 // so we never need a standalone node.exe on the user's machine.
-const server = serverModule.createServer();
+const serverModule = require("./server");
+
 server.on("error", (err) => {
   if (err && err.code === "EADDRINUSE") {
     console.warn("Port " + serverModule.PORT + " already in use - reusing existing SimpleMarkmap server.");
@@ -85,6 +128,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, "preload.js")
     },
   });
   openFile(pendingFile);
