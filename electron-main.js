@@ -13,8 +13,13 @@ function findFileArg(argv) {
 // of the launched .md file, or the default maps/ folder.
 pendingFile = findFileArg(process.argv);
 if (pendingFile) {
-  // Root the picker at the folder of the clicked .md file.
-  process.env.SIMPLEMARKMAP_ROOT = path.dirname(path.resolve(pendingFile));
+  // Root the picker at the project directory (where server.js lives),
+  // not the file's parent. This allows browsing the entire project folder
+  // tree while keeping the "up" button functional.
+  const absoluteFile = path.resolve(pendingFile);
+  // Use the application directory (same as server.js) as the root,
+  // not the file's parent folder.
+  process.env.SIMPLEMARKMAP_ROOT = path.resolve(__dirname);
 }
 
 const serverModule = require("./server");
