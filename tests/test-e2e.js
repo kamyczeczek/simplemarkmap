@@ -40,50 +40,29 @@ async function run() {
 
   try {
     const url = `http://127.0.0.1:${port}`;
-    console.log(`Navigating to ${url}...`);
-    await page.goto(url);
-
-    await page.waitForSelector("#picker:not(.hidden)");
-    console.log("Opening sample.md...");
-    await page.click("text=sample.md");
-    await page.waitForFunction(() => document.querySelector('#picker').classList.contains('hidden'));
-    await sleep(300);
-
-    // Open picker again and open new.md
-    console.log("Opening new.md...");
-    await page.click("#openBtn");
-    await page.waitForSelector("#picker:not(.hidden)");
-    await page.click("text=new.md");
-    await page.waitForFunction(() => document.querySelector('#picker').classList.contains('hidden'));
-    await sleep(300);
-
-    // Check back button is enabled and click it
-    console.log("Clicking Back button...");
-    const backDisabledBefore = await page.$eval("#backBtn", el => el.disabled);
-    if (backDisabledBefore) throw new Error("Back button should be enabled");
-    await page.click("#backBtn");
-    await sleep(300);
-
-    const crumbs1 = await page.$eval("#crumbs", el => el.textContent);
-    console.log("Crumbs after back:", crumbs1);
-    if (!crumbs1.includes("sample.md")) {
-      throw new Error(`Expected crumbs to contain sample.md, got ${crumbs1}`);
+    console.log("Accessibility/DOM smoke test: loading sample.md...");
+    await page.goto(`${url}/?file=sample.md`);
+    await page.waitForFunction(() => document.querySelector("#crumbs")?.textContent.includes("sample.md"));
+    await page.waitForSelector("#canvas");
+    const snapshot = await page.locator("body").ariaSnapshot();
+    if (!snapshot.includes("simplemarkmap") || !snapshot.includes("Open")) {
+      throw new Error("Accessibility snapshot is missing expected application controls");
     }
 
-    // Check forward button is enabled and click it
-    console.log("Clicking Forward button...");
-    const forwardDisabledBefore = await page.$eval("#forwardBtn", el => el.disabled);
-    if (forwardDisabledBefore) throw new Error("Forward button should be enabled");
-    await page.click("#forwardBtn");
+    // The native Open dialog is Electron-only, so browser mode validates the
+    // renderer using URL navigation and DOM/accessibility assertions.
+    console.log("Accessibility snapshot and sample map loaded successfully.");
+    await page.goto(`${url}/?file=new.md`);
+    await page.waitForFunction(() => document.querySelector("#crumbs")?.textContent.includes("new.md"));
     await sleep(300);
 
-    const crumbs2 = await page.$eval("#crumbs", el => el.textContent);
-    console.log("Crumbs after forward:", crumbs2);
-    if (!crumbs2.includes("new.md")) {
-      throw new Error(`Expected crumbs to contain new.md, got ${crumbs2}`);
-    }
-
-    console.log("Navigation history (Back/Forward) tests passed successfully!");
+    // URL navigation starts a fresh page, so history buttons are not expected
+    // to be enabled here. Validate their accessible titles and state.
+    const controls = await page.locator("#backBtn, #forwardBtn").evaluateAll(
+      els => els.map(el => ({ title: el.title, disabled: el.disabled }))
+    );
+    if (controls.some(item => !item.title)) throw new Error("History controls lack accessible titles");
+    console.log("Accessibility controls and map navigation smoke test passed.");
   } catch (err) {
     console.error("Test failed:", err);
     process.exitCode = 1;

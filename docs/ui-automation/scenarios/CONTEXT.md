@@ -11,3 +11,5 @@ Scenariusz musi działać na danych testowych. Przed uruchomieniem na realnej ap
 ## Format
 
 Skopiuj `scenario.template.md`; nie twórz scenariusza od pustego pliku.
+
+Raporty wykonanych testów trafiają do `../reports/`.
