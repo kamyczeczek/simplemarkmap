@@ -1,7 +1,10 @@
 // Pure re-implementation of the v1 link helpers so they can be unit-tested in
 // Node without a browser. Keep this in sync with public/index.html.
+function splitPath(p) {
+    return String(p).split(/[\\/]+/).filter(Boolean);
+}
 function normalizePath(p) {
-    const parts = String(p).split('/').filter(Boolean);
+    const parts = splitPath(p);
     const out = [];
     for (const part of parts) {
         if (part === '.') continue;
@@ -11,14 +14,13 @@ function normalizePath(p) {
     return out.join('/');
 }
 function dirnameOf(p) {
-    const norm = normalizePath(p);
-    const i = norm.lastIndexOf('/');
-    return i === -1 ? '.' : norm.slice(0, i);
+    const parts = splitPath(p);
+    parts.pop();
+    return parts.length ? parts.join('/') : '.';
 }
 function basenameOf(p) {
-    const norm = normalizePath(p);
-    const i = norm.lastIndexOf('/');
-    return i === -1 ? norm : norm.slice(i + 1);
+    const parts = splitPath(p);
+    return parts[parts.length - 1] || "";
 }
 function relPath(fromFile, toFile) {
     const fromDir = dirnameOf(fromFile);
@@ -68,6 +70,13 @@ eq(relPath('docs/a.md', 'other/b.md'), '../other/b.md', 'sibling dirs');
 eq(relPath('a/x/y.md', 'b/z.md'), '../../b/z.md', 'deep parent');
 eq(relPath('docs/a.md', 'docs/b.md'), 'b.md', 'same dir diff name');
 eq(relPath('a.md', 'a.md'), 'a.md', 'self-link returns same name (blocked at call site)');
+
+console.log('== Windows backslash paths ==');
+eq(basenameOf('C:\\Users\\me\\target.md'), 'target.md', 'basenameOf backslash');
+eq(dirnameOf('C:\\Users\\me\\target.md'), 'C:/Users/me', 'dirnameOf backslash');
+eq(normalizePath('C:\\Users\\me\\target.md'), 'C:/Users/me/target.md', 'normalizePath backslash');
+eq(relPath('C:\\Users\\me\\proj\\a.md', 'C:\\Users\\me\\proj\\target.md'), 'target.md', 'relative backslash same dir');
+eq(relPath('C:\\Users\\me\\proj\\a.md', 'C:\\Users\\me\\other\\target.md'), '../other/target.md', 'relative backslash sibling');
 
 console.log('== round-trip invariant ==');
 const cases = [

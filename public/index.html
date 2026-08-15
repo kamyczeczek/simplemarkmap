@@ -647,8 +647,15 @@ async function loadDir(dir) {
         }
 
         /* ---------------- Path helpers (relative .md links) ---------------- */
+        // Split paths on both Windows ("\") and POSIX ("/") separators so an
+        // absolute native-dialog path like "C:\Users\me\a.md" is handled as a
+        // normal sequence of segments.
+        function splitPath(p) {
+            return String(p).split(/[\\/]+/).filter(Boolean);
+        }
+
         function normalizePath(p) {
-            const parts = String(p).split('/').filter(Boolean);
+            const parts = splitPath(p);
             const out = [];
             for (const part of parts) {
                 if (part === '.') continue;
@@ -659,15 +666,14 @@ async function loadDir(dir) {
         }
 
         function basenameOf(p) {
-            const norm = normalizePath(p);
-            const i = norm.lastIndexOf('/');
-            return i === -1 ? norm : norm.slice(i + 1);
+            const parts = splitPath(p);
+            return parts[parts.length - 1] || "";
         }
 
         function dirnameOf(p) {
-            const norm = normalizePath(p);
-            const i = norm.lastIndexOf('/');
-            return i === -1 ? '.' : norm.slice(0, i);
+            const parts = splitPath(p);
+            parts.pop();
+            return parts.length ? parts.join('/') : '.';
         }
 
         // Relative path from fromFile to toFile, both under the server root and
@@ -1908,8 +1914,26 @@ async function loadDir(dir) {
                 const label = basenameOf(filePath).replace(/\.md$/, "") || basenameOf(filePath);
                 const rel = relPath(currentFile || "", filePath);
                 const link = `[${label}](${rel})`;
-                if (editorEl && document.contains(editorEl)) {
-                    insertAtCaret(editorEl, link);
+                // Re-locate the editor element AFTER the dialog closes, so a
+                // re-render/commit that happened while the native dialog had
+                // focus does not leave us holding a detached node. Resume edit
+                // mode if the state was torn down.
+                let editor = editorEl;
+                if (!editor || !document.contains(editor)) {
+                    if (!state.editing && n && findDiv(root, n)) {
+                        // Editing was interrupted by the dialog (e.g. a commit on
+                        // focus loss). Resume edit mode WITHOUT reopening the
+                        // picker — the file has already been chosen.
+                        const div = findDiv(root, n);
+                        startEdit(div);
+                    }
+                    const cur = state.editing || n;
+                    const curDiv = findDiv(root, cur);
+                    const t = curDiv ? curDiv.querySelector(".title") : null;
+                    if (t && document.contains(t)) editor = t;
+                }
+                if (editor && document.contains(editor)) {
+                    insertAtCaret(editor, link);
                 }
             }).catch(() => {});
         }

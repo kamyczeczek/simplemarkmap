@@ -9,6 +9,7 @@
     "start": "electron .",
     "test": "node tests/test-relpath.js",
     "test:e2e": "node tests/test-e2e.js",
+    "test:link": "node tests/test-link-dialog.js",
     "test:desktop": "node tests/test-electron-desktop.js",
     "dist": "electron-builder --win nsis",
     "pack": "electron-builder --dir",
@@ -16,7 +17,8 @@
   },
   "devDependencies": {
     "electron": "^35.0.0",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "playwright": "^1.62.1"
   },
   "build": {
     "appId": "com.simplemarkmap.app",

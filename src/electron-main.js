@@ -1,10 +1,17 @@
 const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 const path = require("path");
+const crypto = require("crypto");
 const http = require("http");
 const APP_DIR = path.resolve(__dirname, "..");
 
 let mainWindow = null;
 let pendingFile = null;
+
+// ---------- SHA-256 Change Detection ----------
+function getDocumentHash(markdownContent) {
+  return crypto.createHash('sha256').update(markdownContent).digest('hex');
+}
+// ------------------------------------------------
 
 function findFileArg(argv) {
   return argv.slice(1).find((arg) => arg && !arg.startsWith("--") && arg.toLowerCase().endsWith(".md"));
@@ -17,6 +24,13 @@ if (pendingFile) {
   // Keep the server root stable; selected files are passed as absolute paths.
   path.resolve(pendingFile);
 }
+
+// ---------- SHA-256 State Initialisation ----------
+let initialHash = null;
+if (pendingFile) {
+  initialHash = getDocumentHash(""); // placeholder; real hash set after first load
+}
+// ------------------------------------------------
 
 // IPC handler for system file dialog. Returns a path relative to the markdown
 // root (which is updated to the chosen file's directory so the HTTP server can
@@ -66,6 +80,7 @@ ipcMain.handle("select-link-target", async () => {
 // so we never need a standalone node.exe on the user's machine.
 const serverModule = require(path.join(__dirname, "server"));
 
+const server = serverModule.createServer();
 server.on("error", (err) => {
   if (err && err.code === "EADDRINUSE") {
     console.warn("Port " + serverModule.PORT + " already in use - reusing existing SimpleMarkmap server.");

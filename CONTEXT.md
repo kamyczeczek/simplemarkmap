@@ -50,3 +50,45 @@ powstają z `docs/ui-automation/scenarios/scenario.template.md`.
 ```
 
 Zmiany zostały wypchnięte do `origin/master`.
+
+## Błąd startowy naprawiony (ReferenceError: server is not defined)
+
+W `src/electron-main.js` serwer HTTP był uruchamiany przez odwołanie do
+niezdefiniowanej zmiennej `server`, które powodowało przy starcie:
+`Uncaught Exception: ReferenceError: server is not defined` (linia 69).
+Moduł `server.js` nie startuje sam w Electronie — wystawia metodę
+`createServer()`. Naprawa: `const server = serverModule.createServer();`.
+
+Zbudowano do `C:\sm-build\out` poleceniem `npm run build:safe` (kod 0).
+Nowy instalator:
+
+```text
+C:\sm-build\out\SimpleMarkmap-Setup-1.0.0.exe
+```
+
+Przed instalacją zamknąć działające instancje SimpleMarkmap.
+
+## Naprawa opcji "Link to file…" (prawy przycisk)
+
+Objaw: dialog systemowy otwiera się, ale po wyborze pliku link nie powstaje.
+
+Przyczyny (w `public/index.html`):
+1. Pomocniki ścieżek (`normalizePath`/`basenameOf`/`dirnameOf`/`relPath`)
+   dzieliły tylko po `/`, nie po Windows `\`. Absolutna ścieżka `C:\...`
+   stawała się jednym segmentem i generowała śmieciowe/niepoprawne linki.
+   Dodano `splitPath()` obsługujące oba separatory.
+2. `openLinkPicker` trzymał referencję do elementu edytora **przed**
+   asynchronicznym dialogiem; po zamknięciu natywnego dialogu (focus/commit)
+   edytor bywał odpięty od DOM i wstawienie cicho znikało. Teraz edytor jest
+   lokalizowany na nowo po rozwiązaniu promise, a edycja wznawiana przez
+   `startEdit` jeśli została przerwana — bez ponownego otwierania pickera.
+
+Nowy test: `npm run test:link` (makiuje natywny dialog w rendererze i weryfikuje
+wstawienie dokładnie jednego względnego linku). Aktualizacja pomocyków objęta
+testem `test-relpath.js` (przypadki backslash).
+
+Zbudowano do `C:\sm-build\out` (`npm run build:safe`, kod 0).
+
+```text
+C:\sm-build\out\SimpleMarkmap-Setup-1.0.0.exe
+```
