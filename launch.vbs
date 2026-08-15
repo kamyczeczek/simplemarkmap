@@ -8,26 +8,21 @@ projectDir = fso.GetParentFolderName(WScript.ScriptFullName)
 If WScript.Arguments.Count > 0 Then
   fileArg = WScript.Arguments(0)
   serverDir = fso.GetParentFolderName(fileArg)
-  targetUrl = "http://127.0.0.1:8765/?file=" & UrlEncode(fso.GetFileName(fileArg))
+  targetUrl = "http://127.0.0.1:8765/?file=" & UrlEncode(fso.GetAbsolutePathName(fileArg))
 Else
   serverDir = fso.BuildPath(projectDir, "maps")
   targetUrl = "http://127.0.0.1:8765/"
 End If
 
-' Stop every process currently owning port 8765. This is deliberately
-' done before starting the selected folder, because an older launcher may
-' have been started before PID tracking existed and would otherwise keep
-' serving maps\*.md.
-shell.Run "cmd.exe /c for /f " & Q("tokens=5") & " %P in ('netstat -ano ^| findstr :8765 ^| findstr LISTENING') do taskkill /f /pid %P >nul 2>&1", 0, True
-
-' Start one hidden server for the selected markdown folder.
+' Reuse the existing server when possible. Never kill another instance:
+' each desktop window can safely open files using absolute paths.
 shell.CurrentDirectory = projectDir
-shell.Run "cmd.exe /c title simplemarkmap-server & node " & Q(fso.BuildPath(projectDir, "server.js")) & " " & Q(serverDir), 0, False
+shell.Run "cmd.exe /c title simplemarkmap-server & node " & Q(fso.BuildPath(projectDir, "server.js")), 0, False
 
 ' Use PATH when node.exe is not next to the project.
-If Not WaitForServer("http://127.0.0.1:8765/api/read?file=" & UrlEncode(fso.GetFileName(fileArg)), 10000) Then
-  shell.Run "cmd.exe /c title simplemarkmap-server & node " & Q(fso.BuildPath(projectDir, "server.js")) & " " & Q(serverDir), 0, False
-  If Not WaitForServer("http://127.0.0.1:8765/api/read?file=" & UrlEncode(fso.GetFileName(fileArg)), 10000) Then
+If Not WaitForServer("http://127.0.0.1:8765/api/read?file=" & UrlEncode(fso.GetAbsolutePathName(fileArg)), 10000) Then
+  shell.Run "cmd.exe /c title simplemarkmap-server & node " & Q(fso.BuildPath(projectDir, "server.js")), 0, False
+  If Not WaitForServer("http://127.0.0.1:8765/api/read?file=" & UrlEncode(fso.GetAbsolutePathName(fileArg)), 10000) Then
     MsgBox "Nie udało się uruchomić simplemarkmap.", 16, "simplemarkmap"
     WScript.Quit 1
   End If

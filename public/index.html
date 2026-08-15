@@ -548,9 +548,9 @@ async function loadDir(dir) {
 
         document.getElementById("openBtn").onclick = async () => {
             try {
-                const relativePath = await window.electronAPI.openSystemDialog();
-                if (relativePath) {
-                    openFile(relativePath);
+                const absolutePath = await window.electronAPI.openSystemDialog();
+                if (absolutePath) {
+                    openFile(absolutePath);
                 }
             } catch (err) {
                 alert("Cannot open file: " + (err && err.message ? err.message : err));

@@ -39,10 +39,9 @@ ipcMain.handle("select-file", async () => {
   }
 
   const absoluteFile = path.resolve(result.filePaths[0]);
-  // Repoint the server root at the chosen file's folder so it can be served.
-  process.env.SIMPLEMARKMAP_ROOT = path.dirname(absoluteFile);
-  const relative = path.basename(absoluteFile);
-  return relative;
+  // Keep the server root stable. The API accepts this explicit absolute path,
+  // allowing files from any location without disrupting another open document.
+  return absoluteFile;
 });
 
 // IPC handler for the "Link to file…" feature. Returns the chosen file's path
@@ -62,8 +61,9 @@ ipcMain.handle("select-link-target", async () => {
   }
 
   const absoluteFile = path.resolve(result.filePaths[0]);
-  const root = process.env.SIMPLEMARKMAP_ROOT || path.parse(absoluteFile).root;
-  return path.relative(root, absoluteFile).replace(/\\/g, "/");
+  // Return an absolute path so links may target any local folder. The renderer
+  // computes a relative Markdown link where possible.
+  return absoluteFile;
 });
 
 // Start the existing HTTP server in this process (Electron's bundled Node),
@@ -100,11 +100,9 @@ function waitForServer() {
 
 function fileUrl(filePath) {
   if (!filePath) return `http://127.0.0.1:${serverModule.PORT}/`;
-  // Root the path relative to the markdown root set by the Electron main process.
+  // Keep the selected file absolute so the server can read any local path.
   const absoluteFile = path.resolve(filePath);
-  const root = process.env.SIMPLEMARKMAP_ROOT || path.parse(absoluteFile).root;
-  const relative = path.relative(root, absoluteFile).replace(/\\/g, "/");
-  return `http://127.0.0.1:${serverModule.PORT}/?file=${encodeURIComponent(relative)}`;
+  return `http://127.0.0.1:${serverModule.PORT}/?file=${encodeURIComponent(absoluteFile)}`;
 }
 
 async function openFile(filePath) {
@@ -142,7 +140,6 @@ if (!gotLock) {
   app.on("second-instance", (_event, argv) => {
     const filePath = findFileArg(argv);
     if (filePath) {
-      process.env.SIMPLEMARKMAP_ROOT = path.dirname(path.resolve(filePath));
       openFile(path.resolve(filePath));
     }
     if (mainWindow) {

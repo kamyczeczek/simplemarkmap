@@ -148,6 +148,15 @@ async function safeResolvePath(base, relative) {
   return abs;
 }
 
+// Electron and the Explorer launcher may provide an absolute path selected by
+// the user. Such paths are intentionally allowed: the app is a local desktop
+// editor, not a public file server. Relative paths remain sandboxed to ROOT.
+async function resolveUserPath(file) {
+  const value = String(file || "").replace(/^\/+/, "");
+  if (path.isAbsolute(value)) return path.resolve(value);
+  return safeResolvePath(ROOT, value);
+}
+
 /**
  * Read and parse JSON body with a size limit.
  */
@@ -259,11 +268,11 @@ async function apiRead(req, res, url) {
     throw new HttpError(400, "Only .md files can be read");
   }
 
-  const abs = await safeResolvePath(ROOT, file);
+  const abs = await resolveUserPath(file);
 
   try {
     const content = await fs.readFile(abs, "utf8");
-    sendJson(res, 200, { path: file.replace(/^\//, ""), content });
+    sendJson(res, 200, { path: path.normalize(abs), content });
   } catch (err) {
     if (err.code === "ENOENT") throw new HttpError(404, "File not found");
     throw err;
@@ -283,7 +292,7 @@ async function apiWrite(req, res) {
     throw new HttpError(400, "content must be a string");
   }
 
-  const abs = await safeResolvePath(ROOT, file);
+  const abs = await resolveUserPath(file);
 
   // Ensure parent directory exists
   await fs.mkdir(path.dirname(abs), { recursive: true });
