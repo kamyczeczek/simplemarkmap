@@ -1709,17 +1709,13 @@ async function loadDir(dir) {
         /* ---------------- Link navigation ---------------- */
         function navigateLink(url) {
             if (!url) return;
-            let target = url;
-            if (currentFile) {
-                const dir = currentFile.includes("/") ? currentFile.substring(0, currentFile.lastIndexOf("/") + 1) : "";
-                target = dir + url;
-                const parts = target.split("/");
-                const resolved = [];
-                for (const p of parts) {
-                    if (p === "..") { resolved.pop(); } else if (p !== "." && p !== "") { resolved.push(p); }
-                }
-                target = resolved.join("/");
-            }
+            // Use the current file's directory (handles both "/" and "\" via
+            // splitPath/normalizePath). On Windows, currentFile may be an
+            // absolute path like "C:\Users\me\a.md" which has no "/", so the
+            // old substring trick left dir empty and broke relative links.
+            const currentDir = currentFile ? dirnameOf(currentFile) : ".";
+            let target = (currentDir === "." ? url : currentDir + "/" + url);
+            target = normalizePath(target);
             if (!target.toLowerCase().endsWith(".md")) target += ".md";
             openFile(target);
         }
@@ -1901,41 +1897,36 @@ async function loadDir(dir) {
         function openLinkPicker() {
             const n = state.editing;
             if (!n) return;
-            const div = findDiv(root, n);
-            const editorEl = div ? div.querySelector(".title") : null;
-            pickerReturnFocus = editorEl;
+            state.pickerOpen = true;
             // Use the native OS file picker instead of the custom HTML picker.
             window.electronAPI.openLinkDialog().then((filePath) => {
-                if (!filePath) return;
+                if (!filePath) {
+                    hidePicker();
+                    return;
+                }
                 // Self-link guard.
                 if (currentFile && normalizePath(filePath) === normalizePath(currentFile)) {
+                    hidePicker();
                     return;
                 }
                 const label = basenameOf(filePath).replace(/\.md$/, "") || basenameOf(filePath);
                 const rel = relPath(currentFile || "", filePath);
                 const link = `[${label}](${rel})`;
-                // Re-locate the editor element AFTER the dialog closes, so a
-                // re-render/commit that happened while the native dialog had
-                // focus does not leave us holding a detached node. Resume edit
-                // mode if the state was torn down.
-                let editor = editorEl;
-                if (!editor || !document.contains(editor)) {
-                    if (!state.editing && n && findDiv(root, n)) {
-                        // Editing was interrupted by the dialog (e.g. a commit on
-                        // focus loss). Resume edit mode WITHOUT reopening the
-                        // picker — the file has already been chosen.
-                        const div = findDiv(root, n);
-                        startEdit(div);
-                    }
-                    const cur = state.editing || n;
-                    const curDiv = findDiv(root, cur);
-                    const t = curDiv ? curDiv.querySelector(".title") : null;
-                    if (t && document.contains(t)) editor = t;
+                // End DOM editing before changing the model.
+                hidePicker();
+                if (state.editing === n) commitEdit();
+                if (n.kind === "content") {
+                    n.raw = (n.raw || "") + link;
+                    n.title = n.raw;
+                } else {
+                    n.title = (n.title || "") + link;
                 }
-                if (editor && document.contains(editor)) {
-                    insertAtCaret(editor, link);
-                }
-            }).catch(() => {});
+                render();
+                selectNode(n);
+                scheduleAutoSave();
+            }).catch(() => {
+                hidePicker();
+            });
         }
 
         function onNodeKey(e, div) {
@@ -2264,7 +2255,9 @@ async function loadDir(dir) {
                 updateHistoryButtons();
             } catch (e) {
                 if (e.message && (e.message.includes("not found") || e.message.includes("404"))) {
-                    const name = path.split('/').pop().replace('.md', '') || "new";
+                    // basenameOf handles both "/" and "\" via splitPath; falls
+                    // back to a sane default if the path is empty.
+                    const name = basenameOf(path).replace(/\.md$/i, "") || "new";
                     const defaultContent = "# " + name + "\n";
                     try {
                         await api("/api/write", {

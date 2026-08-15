@@ -295,9 +295,19 @@ async function apiWrite(req, res) {
   const abs = await resolveUserPath(file);
 
   // Ensure parent directory exists
-  await fs.mkdir(path.dirname(abs), { recursive: true });
+  try {
+    await fs.mkdir(path.dirname(abs), { recursive: true });
+  } catch (err) {
+    throw new HttpError(403, `Cannot create directory: ${err.message}`);
+  }
 
-  await fs.writeFile(abs, body.content, "utf8");
+  try {
+    await fs.writeFile(abs, body.content, "utf8");
+  } catch (err) {
+    if (err.code === "EACCES") throw new HttpError(403, "Permission denied");
+    if (err.code === "ENOENT") throw new HttpError(404, "Parent directory missing");
+    throw err;
+  }
   sendJson(res, 200, { ok: true, path: file });
 }
 

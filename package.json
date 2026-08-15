@@ -23,7 +23,7 @@
   "build": {
     "appId": "com.simplemarkmap.app",
     "productName": "SimpleMarkmap",
-    "asar": false,
+    "asar": true,
     "files": [
       "src/**/*",
       "public/**/*",
