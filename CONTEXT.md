@@ -36,6 +36,13 @@ Projekt ma routing w `AGENTS.md`, kod w `src/`, testy w `tests/`, dokumentację 
 skrypty w `scripts/` oraz osobne decyzje architektoniczne w `docs/decisions/`.
 Build i testy powinny być wykonywane przez `npm test` oraz `npm run build:safe`.
 
+## Skill automatyzacji UI
+
+Kontrakt narzędzia accessibility/DOM znajduje się w `docs/ui-automation/`.
+Dla aplikacji webowych docelowym adapterem jest Playwright; selektory bazują
+na role/name/label/testId. `execute_js` jest wyłączone domyślnie, a scenariusze
+powstają z `docs/ui-automation/scenarios/scenario.template.md`.
+
 ## Ostatni commit zmian
 
 ```text

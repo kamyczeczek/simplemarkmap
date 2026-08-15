@@ -10,6 +10,7 @@ Electronowa aplikacja do edycji map Markdown.
 - testy: `tests/`
 - skrypty: `scripts/`
 - dokumentacja i decyzje: `docs/`
+- skill automatyzacji accessibility/DOM: `docs/ui-automation/`
 - dane przykładowe: `maps/`
 
 ## Zasady przed zmianą
