@@ -13,14 +13,10 @@ function findFileArg(argv) {
 // of the launched .md file, or the default maps/ folder.
 pendingFile = findFileArg(process.argv);
 if (pendingFile) {
-  // Use the user's Documents folder as the workspace root when possible.
-  // This lets the picker browse from the file's folder to its parent folders.
+  // Always root the picker at the filesystem root so the user can browse
+  // the entire drive. The double-clicked file is still opened directly.
   const absoluteFile = path.resolve(pendingFile);
-  const documentsRoot = path.resolve(app.getPath("documents"));
-  const relativeToDocuments = path.relative(documentsRoot, absoluteFile);
-  process.env.SIMPLEMARKMAP_ROOT = relativeToDocuments && !relativeToDocuments.startsWith("..")
-    ? documentsRoot
-    : path.dirname(absoluteFile);
+  process.env.SIMPLEMARKMAP_ROOT = path.parse(absoluteFile).root;
 }
 
 const serverModule = require("./server");
@@ -28,6 +24,13 @@ const serverModule = require("./server");
 // Start the existing HTTP server in this process (Electron's bundled Node),
 // so we never need a standalone node.exe on the user's machine.
 const server = serverModule.createServer();
+server.on("error", (err) => {
+  if (err && err.code === "EADDRINUSE") {
+    console.warn("Port " + serverModule.PORT + " already in use - reusing existing SimpleMarkmap server.");
+  } else {
+    dialog.showErrorBox("SimpleMarkmap", (err && err.message) || String(err));
+  }
+});
 server.listen(serverModule.PORT, serverModule.HOST, () => {
   console.log(`simplemarkmap → http://${serverModule.HOST}:${serverModule.PORT}`);
 });
@@ -51,7 +54,11 @@ function waitForServer() {
 
 function fileUrl(filePath) {
   if (!filePath) return `http://127.0.0.1:${serverModule.PORT}/`;
-  return `http://127.0.0.1:${serverModule.PORT}/?file=${encodeURIComponent(path.basename(filePath))}`;
+  // Send the path relative to the filesystem root so the server can locate it
+  const absoluteFile = path.resolve(filePath);
+  const root = path.parse(absoluteFile).root;
+  const relative = path.relative(root, absoluteFile).replace(/\\/g, "/");
+  return `http://127.0.0.1:${serverModule.PORT}/?file=${encodeURIComponent(relative)}`;
 }
 
 async function openFile(filePath) {

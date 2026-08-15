@@ -23,11 +23,9 @@ function resolveArgvRoot() {
 }
 
 function defaultRoot() {
-  const inApp = path.join(__dirname, "maps");
-  const docs = process.env.USERPROFILE
-    ? path.join(process.env.USERPROFILE, "Documents", "SimpleMarkmap")
-    : inApp;
-  return docs;
+  // Allow browsing the whole filesystem from the drive root so the picker's
+  // "up" button can reach the filesystem root (e.g. C:\).
+  return path.parse(process.cwd()).root;
 }
 
 const ROOT = path.resolve(resolveArgvRoot() || process.env.SIMPLEMARKMAP_ROOT || defaultRoot());

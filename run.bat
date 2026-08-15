@@ -61,6 +61,11 @@ echo simplemarkmap server starting...
 echo   ROOT: %SERVER_DIR%
 echo   URL:  %TARGET_URL%
 
+:: Kill any process already listening on port 8765 (leftover from a previous run)
+for /f "tokens=5" %%P in ('netstat -ano ^| findstr :8765 ^| findstr LISTENING') do (
+  taskkill /f /pid %%P >nul 2>&1
+)
+
 set "BROWSER_EXE="
 
 if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" (

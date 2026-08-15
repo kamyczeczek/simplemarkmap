@@ -14,3 +14,7 @@ win-unpacked*/
 .simplemarkmap-server.pid
 *.err
 *.out
+
+installer-out/
+
+build-out/
