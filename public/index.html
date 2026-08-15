@@ -1,0 +1,2325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>simplemarkmap</title>
+    <style>
+        /* ——— styles (mostly unchanged) ——— */
+        :root {
+            --bg: #0f1115;
+            --panel: #161a22;
+            --edge: #262c38;
+            --text: #e6e9ef;
+            --muted: #8b93a3;
+            --accent: #4f8cff;
+            --accent-dim: #2e5aa8;
+            --node: #1c2230;
+            --node-hover: #222a3b;
+            --node-selected: #24406b;
+            --sel-box-border: #4f8cff;
+            --sel-box-bg: rgba(79, 140, 255, 0.12);
+            --link-color: #6a9aff;
+            --drop-target: rgba(79, 140, 255, 0.25);
+            --drop-insert: #4f8cff;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "Segoe UI", system-ui, sans-serif;
+            overflow: hidden;
+        }
+
+        #topbar {
+            height: 46px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 12px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--edge);
+            position: relative;
+            z-index: 5;
+        }
+        #topbar .brand {
+            font-weight: 700;
+            letter-spacing: .3px;
+            margin-right: 4px;
+        }
+        #crumbs {
+            color: var(--muted);
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #crumbs b {
+            color: var(--text);
+        }
+        #topbar button {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 14px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        #topbar button.ghost {
+            background: transparent;
+            border: 1px solid var(--edge);
+            color: var(--text);
+        }
+        #topbar button:hover {
+            filter: brightness(1.1);
+        }
+        #topbar button:disabled {
+            opacity: .45;
+            cursor: default;
+            filter: none;
+        }
+        #status {
+            margin-left: auto;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        #picker {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            z-index: 10;
+        }
+        #picker.hidden {
+            display: none;
+        }
+        #pickerCard {
+            width: 420px;
+            max-width: 92vw;
+            background: var(--panel);
+            border: 1px solid var(--edge);
+            border-radius: 12px;
+            padding: 20px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        #pickerCard h2 {
+            margin: 0 0 4px;
+            font-size: 18px;
+        }
+        #pickerCard .sub {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        #pickerNav {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        #pickerNav .path {
+            color: var(--text);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #pickerNav button {
+            background: transparent;
+            border: 1px solid var(--edge);
+            color: var(--text);
+            border-radius: 5px;
+            padding: 4px 8px;
+            cursor: pointer;
+        }
+        #fileList {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid var(--edge);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+        #fileList .row {
+            display: flex;
+            gap: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 6px;
+        }
+        #fileList .row:hover {
+            background: var(--node-hover);
+        }
+        #fileList .row .ic {
+            color: var(--accent);
+        }
+        #fileList .row .ic.none {
+            color: var(--muted);
+        }
+        #fileList .empty {
+            padding: 16px;
+            color: var(--muted);
+            font-size: 13px;
+            text-align: center;
+        }
+        #newFileName {
+            flex: 1;
+            background: var(--bg-2);
+            color: var(--text);
+            border: 1px solid var(--edge);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-size: 14px;
+        }
+        #newFileName:focus { outline: none; border-color: var(--accent); }
+
+        #canvas {
+            position: absolute;
+            inset: 46px 0 0 0;
+            overflow: auto;
+            z-index: 1;
+            cursor: default;
+            user-select: none;
+        }
+        #canvas.panning {
+            cursor: grabbing;
+        }
+        #canvas.alt-pan {
+            cursor: grab;
+        }
+        #canvas.alt-pan:active {
+            cursor: grabbing;
+        }
+
+        #grid {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            min-width: 100%;
+            min-height: 100%;
+            transform-origin: 0 0;
+        }
+        #grid.dots {
+            background-image: radial-gradient(circle, #202630 1px, transparent 1px);
+            background-size: 24px 24px;
+        }
+
+        #selBox {
+            position: absolute;
+            border: 1.5px dashed var(--sel-box-border);
+            background: var(--sel-box-bg);
+            pointer-events: none;
+            z-index: 3;
+            display: none;
+            border-radius: 4px;
+        }
+
+        #ctxMenu {
+            position: fixed;
+            z-index: 50;
+            background: var(--panel);
+            border: 1px solid var(--edge);
+            border-radius: 8px;
+            padding: 4px;
+            min-width: 160px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+        #ctxMenu .ctx-item {
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        #ctxMenu .ctx-item:hover {
+            background: var(--node-hover);
+        }
+
+        #autocomplete {
+            position: fixed;
+            z-index: 60;
+            background: var(--panel);
+            border: 1px solid var(--edge);
+            border-radius: 8px;
+            padding: 4px;
+            width: 280px;
+            max-height: 260px;
+            overflow-y: auto;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+        }
+        #autocomplete .ac-item {
+            padding: 6px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+        }
+        #autocomplete .ac-item .ac-name { font-weight: 600; }
+        #autocomplete .ac-item .ac-path { color: var(--muted); font-size: 11px; }
+        #autocomplete .ac-item.active { background: var(--node-selected); }
+        #autocomplete .ac-item.ac-create { border-top: 1px solid var(--edge); }
+        #autocomplete .ac-item.ac-create .ac-name { color: var(--accent); }
+        #autocomplete .ac-empty { padding: 8px 10px; color: var(--muted); font-size: 12px; }
+
+        .mnode {
+            position: absolute;
+            min-width: 120px;
+            max-width: 240px;
+            padding: 8px 12px;
+            background: var(--node);
+            border: 1.5px solid var(--edge);
+            border-radius: 8px;
+            cursor: grab;
+            font-size: 13px;
+            line-height: 1.35;
+            word-wrap: break-word;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, .35);
+            transition: box-shadow .12s;
+            z-index: 2;
+            user-select: none;
+            touch-action: none;
+        }
+        .mnode:hover {
+            background: var(--node-hover);
+        }
+        .mnode.selected {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-dim);
+        }
+        .mnode.root {
+            border-color: var(--accent-dim);
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            cursor: default;
+        }
+        .mnode[contenteditable="true"] {
+            outline: none;
+            cursor: text;
+            user-select: text;
+        }
+        .mnode .body {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px dashed var(--edge);
+            color: var(--muted);
+            font-size: 12px;
+            white-space: pre-wrap;
+        }
+        .mnode .body .md-link {
+            color: var(--link-color);
+            text-decoration: underline;
+            cursor: pointer;
+            word-break: break-all;
+        }
+        .mnode .body .md-link:hover {
+            color: #8ab4ff;
+        }
+        .mnode .title .md-link {
+            color: var(--link-color);
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .mnode .title .md-link:hover {
+            color: #8ab4ff;
+        }
+
+        .drag-ghost {
+            position: fixed;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.85;
+            transform: scale(1.04);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, .6);
+            border-color: var(--accent);
+        }
+
+        .drop-target-child .mnode:not(.root):not(.drag-ghost) {
+            border-color: var(--accent) !important;
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+        .drop-insert-before .mnode:not(.root):not(.drag-ghost) {
+            border-top-color: var(--drop-insert) !important;
+            border-top-width: 3px !important;
+        }
+        .drop-insert-after .mnode:not(.root):not(.drag-ghost) {
+            border-bottom-color: var(--drop-insert) !important;
+            border-bottom-width: 3px !important;
+        }
+
+        .mnode.drag-over {
+            background: var(--drop-target) !important;
+        }
+
+        .mlink {
+            position: absolute;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(22, 26, 34, .92);
+            border: 1px solid var(--edge);
+            border-radius: 999px;
+            padding: 6px 14px;
+            font-size: 12px;
+            color: var(--muted);
+            z-index: 6;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+        .hint kbd {
+            background: var(--node);
+            color: var(--text);
+            border: 1px solid var(--edge);
+            border-radius: 4px;
+            padding: 1px 5px;
+            font-family: inherit;
+            font-size: 11px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a3140;
+            border-radius: 6px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #353d4f;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="topbar">
+        <span class="brand">simplemarkmap</span>
+        <span id="crumbs">—</span>
+        <button id="backBtn" class="ghost" disabled title="Go Back">←</button>
+        <button id="forwardBtn" class="ghost" disabled title="Go Forward">→</button>
+        <button id="openBtn" class="ghost">Open…</button>
+        <button id="saveBtn" disabled>Save</button>
+        <button id="addRootBtn" class="ghost">+ Root</button>
+        <span id="status"></span>
+    </div>
+
+    <div id="picker">
+        <div id="pickerCard">
+            <h2>Open a markdown note</h2>
+            <div class="sub">Headings (<b>#</b>, <b>##</b>, …) become the mindmap tree.</div>
+            <div id="pickerNav">
+                <button id="navUp">↑</button>
+                <span class="path" id="navPath">.</span>
+            </div>
+            <div id="fileList"></div>
+            <div style="display:flex; gap:8px; margin-top:8px;">
+                <input id="newFileName" type="text" placeholder="newfile.md" autocomplete="off" />
+                <button id="newHere">+ New file in this folder</button>
+            </div>
+            <div style="margin-top:8px; display:flex; gap:8px;">
+                <button id="cancelPick" class="ghost" style="flex:1">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="canvas">
+        <div id="grid" class="dots">
+            <div id="selBox"></div>
+        </div>
+    </div>
+
+    <div id="ctxMenu" class="hidden">
+        <div class="ctx-item" id="ctxLink">Link to file…</div>
+    </div>
+
+    <div id="autocomplete" class="hidden">
+        <div id="acList"></div>
+    </div>
+
+    <div class="hint">
+        <kbd>drag empty</kbd> box‑select · <kbd>Alt+drag</kbd> or <kbd>🖱️中键</kbd> pan ·
+        <kbd>Tab</kbd> child · <kbd>Enter</kbd> sibling · <kbd>Shift+Tab</kbd> unindent ·
+        <kbd>←↑→↓</kbd> navigate · just type to edit · <kbd>Del</kbd> delete selected ·
+        <kbd>Ctrl+S</kbd> save · <kbd>Ctrl+Z</kbd> undo
+    </div>
+
+    <script>
+        "use strict";
+
+        const $ = (s) => document.querySelector(s);
+        const $$ = (s) => document.querySelectorAll(s);
+        const canvasEl = document.getElementById("canvas");
+        const grid = document.getElementById("grid");
+
+        /* ---------------- URL file param ---------------- */
+        const urlParams = new URLSearchParams(new URL(document.location).searchParams);
+        const fileParam = urlParams.get("file");
+        const dirParam = urlParams.get("dir");
+        /* -------------------- */
+
+        /* ---------------- File picker ---------------- */
+        let cwd = dirParam ? normalizePath(dirParam) : ".";
+        // The server root is a drive root in filesystem-browse mode. Keep
+        // paths relative and normalize the initial URL directory.
+        if (cwd === "") cwd = ".";
+        let currentFile = null;
+
+        async function api(url, opts) {
+            opts = opts || {};
+            opts.headers = Object.assign({}, opts.headers, { "X-Requested-With": "simplemarkmap" });
+            const r = await fetch(url, opts);
+            const j = await r.json().catch(() => ({}));
+            if (!r.ok) throw new Error(j.error || "request failed");
+            return j;
+        }
+
+async function loadDir(dir) {
+            const items = await api("/api/list?dir=" + encodeURIComponent(dir || "."));
+            const list = document.getElementById("fileList");
+            list.innerHTML = "";
+            if (items.length === 0) {
+                list.innerHTML = '<div class="empty">Nothing here yet.</div>';
+                return;
+            }
+            for (const it of items) {
+                const row = document.createElement("div");
+                row.className = "row";
+                const ic = it.type === "dir" ? "📁" : "📄";
+                row.innerHTML = `<span class="ic ${it.type === "file" ? "" : "none"}">${ic}</span>
+           <span>${escapeHtml(it.name)}</span>`;
+                if (it.type === "dir") {
+                    row.onclick = () => {
+                        // Enter this directory: its own path (root dir reports ".").
+                        cwd = it.dir === "." ? it.name : (it.dir + "/" + it.name);
+                        document.getElementById("navPath").textContent = cwd || ".";
+                        loadDir(cwd);
+                        document.getElementById("navUp").disabled = cwd === "" || cwd === ".";
+                    };
+                } else {
+                    const filePath = it.dir === "." ? it.name : (it.dir + "/" + it.name);
+                    row.onclick = () => {
+                        if (pickerOnSelect) {
+                            // Insert mode: return the path and close the picker.
+                            const cb = pickerOnSelect;
+                            const ret = pickerReturnFocus;
+                            pickerOnSelect = null;
+                            pickerReturnFocus = null;
+                            document.getElementById("picker").classList.add("hidden");
+                            state.pickerOpen = false;
+                            if (ret && document.contains(ret)) ret.focus({ preventScroll: true });
+                            cb(filePath);
+                        } else {
+                            openFile(filePath);
+                        }
+                    };
+                }
+                list.appendChild(row);
+            }
+            document.getElementById("navUp").disabled = (cwd === "");
+        }
+
+        /* Auto-load file from URL param if present */
+        (async () => {
+            if (fileParam) {
+                await openFile(fileParam);
+            }
+        })();
+
+        // Insert-mode picker state (relative .md link insertion).
+        let pickerOnSelect = null;        // callback(filePath) when in insert mode
+        let pickerReturnFocus = null;     // editor element to refocus after closing
+
+        document.getElementById("openBtn").onclick = () => showPicker();
+        document.getElementById("cancelPick").onclick = () => hidePicker();
+        document.getElementById("navUp").onclick = () => {
+            // Determine if we are currently at the root folder.
+            const isAtRoot = cwd === "." || cwd === "";
+
+            if (isAtRoot) {
+                // At root: let the user know they're at the top level.
+                flash("Already at root folder");
+                return;
+            }
+
+            // Navigate up one level from the current folder. Keep "." as the
+            // logical root; never use an empty path for a real directory.
+            const parts = String(cwd).split("/").filter(Boolean);
+            parts.pop();
+            cwd = parts.length ? parts.join("/") : ".";
+
+            // Update the breadcrumb and load only the new directory.
+            document.getElementById("navPath").textContent = cwd;
+            document.getElementById("navUp").disabled = cwd === ".";
+            loadDir(cwd).catch((err) => alert("Cannot open folder: " + err.message));
+            flash("Moved up one level");
+        };
+
+        document.getElementById("newHere").onclick = async () => {
+            const input = document.getElementById("newFileName");
+            const raw = (input.value || "").trim();
+            if (!raw) {
+                // No text typed: focus the field instead of silently doing nothing.
+                input.focus();
+                return;
+            }
+            const name = raw.toLowerCase().endsWith(".md") ? raw : (raw + ".md");
+            const full = (cwd ? cwd + "/" : "") + name;
+            // Sanitize the filename: strip characters illegal on Windows.
+            const clean = name.replace(/[\\\/:*?"<>|]/g, "").trim();
+            if (!clean) { alert("Invalid file name."); return; }
+            const cleanFull = (cwd ? cwd + "/" : "") + clean;
+            try {
+                await api("/api/write", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ file: cleanFull, content: "# New map\n" }),
+                });
+                input.value = "";
+                if (pickerOnSelect) {
+                    // Insert mode: insert a link to the new file, don't navigate away.
+                    const cb = pickerOnSelect;
+                    const ret = pickerReturnFocus;
+                    pickerOnSelect = null;
+                    pickerReturnFocus = null;
+                    document.getElementById("picker").classList.add("hidden");
+                    state.pickerOpen = false;
+                    if (ret && document.contains(ret)) ret.focus({ preventScroll: true });
+                    acIndex = null; acLoading = false; // refresh autocomplete index
+                    cb(cleanFull);
+                } else {
+                    await openFile(cleanFull);
+                }
+            } catch (err) {
+                alert("Failed to create file: " + (err && err.message ? err.message : err));
+            }
+        };
+
+        // showPicker({ onSelect }) — if onSelect is given, the picker runs in
+        // INSERT mode (returns the chosen file path via onSelect instead of
+        // navigating). Otherwise it behaves as before (open mode).
+        function showPicker(opts) {
+            opts = opts || {};
+            pickerOnSelect = opts.onSelect || null;
+            const ni = document.getElementById("newFileName");
+            if (ni) ni.value = "";
+            document.getElementById("picker").classList.remove("hidden");
+            loadDir(cwd);
+        }
+
+        function hidePicker() {
+            document.getElementById("picker").classList.add("hidden");
+            state.pickerOpen = false;
+            if (pickerOnSelect) {
+                // Insert mode was cancelled: restore the editor without committing.
+                pickerOnSelect = null;
+                if (pickerReturnFocus && document.contains(pickerReturnFocus)) {
+                    pickerReturnFocus.focus({ preventScroll: true });
+                }
+                pickerReturnFocus = null;
+            }
+        }
+
+        function escapeHtml(s) {
+            return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" } [c]));
+        }
+
+        /* ---------------- Path helpers (relative .md links) ---------------- */
+        function normalizePath(p) {
+            const parts = String(p).split('/').filter(Boolean);
+            const out = [];
+            for (const part of parts) {
+                if (part === '.') continue;
+                if (part === '..') { out.pop(); continue; }
+                out.push(part);
+            }
+            return out.join('/');
+        }
+
+        function basenameOf(p) {
+            const norm = normalizePath(p);
+            const i = norm.lastIndexOf('/');
+            return i === -1 ? norm : norm.slice(i + 1);
+        }
+
+        function dirnameOf(p) {
+            const norm = normalizePath(p);
+            const i = norm.lastIndexOf('/');
+            return i === -1 ? '.' : norm.slice(0, i);
+        }
+
+        // Relative path from fromFile to toFile, both under the server root and
+        // including the .md suffix. Inverse of navigateLink()'s resolution.
+        function relPath(fromFile, toFile) {
+            const fromDir = dirnameOf(fromFile);
+            const to = normalizePath(toFile);
+
+            const fromParts = fromDir === '.' ? [] : fromDir.split('/');
+            const toParts = to.split('/');
+
+            let common = 0;
+            while (
+                common < fromParts.length &&
+                common < toParts.length - 1 &&
+                fromParts[common] === toParts[common]
+            ) {
+                common++;
+            }
+
+            const ups = Array(fromParts.length - common).fill('..');
+            const downs = toParts.slice(common);
+            return [...ups, ...downs].join('/');
+        }
+
+        /* ---------------- Caret insertion into contentEditable ---------------- */
+        function insertAtCaret(element, text) {
+            element.focus();
+            if (document.execCommand) {
+                const ok = document.execCommand('insertText', false, text);
+                if (ok) return;
+            }
+            // Fallback: Range-based insertion
+            const selection = window.getSelection();
+            if (!selection.rangeCount) {
+                placeCaretAtEnd(element);
+            }
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            const textNode = document.createTextNode(text);
+            range.insertNode(textNode);
+            range.setStartAfter(textNode);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        /* ---------------- [[ autocomplete fast-path ---------------- */
+        // Cache of every .md file under the server root (recursive), loaded lazily.
+        let acIndex = null;      // array of { file, name } where file is relative path
+        let acLoading = false;
+
+        async function ensureAcIndex() {
+            if (acIndex || acLoading) return acIndex;
+            acLoading = true;
+            acIndex = [];
+            const seen = new Set();
+            async function walk(dir) {
+                const items = await api("/api/list?dir=" + encodeURIComponent(dir || "."));
+                for (const it of items) {
+                    if (it.type === "dir") {
+                        // Skip system/hidden dirs to keep the index fast & clean.
+                        if (it.name === ".git" || it.name === ".opencode" ||
+                            it.name === "__pycache__" || it.name.startsWith(".")) continue;
+                        const d = it.dir === "." ? it.name : (it.dir + "/" + it.name);
+                        if (!seen.has(d)) { seen.add(d); await walk(d); }
+                    } else if (it.type === "file") {
+                        const file = it.dir === "." ? it.name : (it.dir + "/" + it.name);
+                        acIndex.push({ file, name: basenameOf(file) });
+                    }
+                }
+            }
+            try { await walk("."); }
+            catch (e) { acIndex = []; }
+            acLoading = false;
+            return acIndex;
+        }
+
+        // Detect an unclosed [[ immediately before the caret inside a text node.
+        // Returns { textNode, startOffset, query } or null.
+        function detectTrigger(range) {
+            if (!range || !range.startContainer || range.startContainer.nodeType !== 3) return null;
+            const textNode = range.startContainer;
+            const off = range.startOffset;
+            const text = textNode.textContent.slice(0, off);
+            const i = text.lastIndexOf("[[");
+            if (i === -1) return null;
+            // No closing ]] between the trigger and the caret (unclosed).
+            const between = text.slice(i + 2);
+            if (between.includes("]]")) return null;
+            return { textNode, startOffset: i + 2, query: between };
+        }
+
+        const acState = { active: false, editor: null, textNode: null, startOffset: 0, items: [], sel: 0 };
+        const acEl = document.getElementById("autocomplete");
+        const acListEl = document.getElementById("acList");
+
+        function acHide() {
+            acState.active = false;
+            acEl.classList.add("hidden");
+            acListEl.innerHTML = "";
+        }
+
+        function acRender() {
+            acListEl.innerHTML = "";
+            if (acState.items.length === 0) {
+                const e = document.createElement("div");
+                e.className = "ac-empty";
+                e.textContent = "No matching file";
+                acListEl.appendChild(e);
+                return;
+            }
+            acState.items.forEach((it, idx) => {
+                const row = document.createElement("div");
+                row.className = "ac-item" + (it.create ? " ac-create " : "") + (idx === acState.sel ? " active" : "");
+                if (it.create) {
+                    row.innerHTML = `<span class="ac-name">＋ Create “${escapeHtml(it.name)}”</span><span class="ac-path">new file</span>`;
+                } else {
+                    row.innerHTML = `<span class="ac-name">${escapeHtml(it.name)}</span><span class="ac-path">${escapeHtml(it.file)}</span>`;
+                }
+                row.onmousedown = (e) => { e.preventDefault(); acChoose(idx); };
+                acListEl.appendChild(row);
+            });
+        }
+
+        function acFilter(query) {
+            const q = query.toLowerCase();
+            const matches = acIndex
+                .filter(it => !q || it.name.toLowerCase().includes(q) || it.file.toLowerCase().includes(q))
+                .slice(0, 50);
+            // Obsidian-style: always offer to CREATE a new file from the query
+            // (unless the query is empty or already matches an existing file exactly).
+            const exact = acIndex.find(it => it.file.toLowerCase() === q + ".md");
+            if (q && !exact) {
+                matches.unshift({ create: true, name: query, file: query + ".md" });
+            }
+            return matches;
+        }
+
+        function acPosition() {
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return;
+            const r = sel.getRangeAt(0).cloneRange();
+            const rect = r.getBoundingClientRect();
+            let x = rect.left, y = rect.bottom + 4;
+            if (rect.left === 0 && rect.top === 0) {
+                // Fallback: near the editor element.
+                const er = acState.editor.getBoundingClientRect();
+                x = er.left; y = er.bottom + 4;
+            }
+            x = Math.min(x, window.innerWidth - 290);
+            y = Math.min(y, window.innerHeight - 270);
+            acEl.style.left = x + "px";
+            acEl.style.top = y + "px";
+        }
+
+        async function acUpdate() {
+            const sel = window.getSelection();
+            if (!sel.rangeCount) { acHide(); return; }
+            const tr = detectTrigger(sel.getRangeAt(0));
+            if (!tr) { acHide(); return; }
+            await ensureAcIndex();
+            acState.active = true;
+            acState.editor = sel.anchorNode && sel.anchorNode.nodeType === 1 ? sel.anchorNode : acState.editor;
+            acState.textNode = tr.textNode;
+            acState.startOffset = tr.startOffset;
+            acState.items = acFilter(tr.query);
+            acState.sel = 0;
+            acEl.classList.remove("hidden");
+            acRender();
+            acPosition();
+        }
+
+        // Replace the [[query trigger with a generated [label](rel) link.
+        function acInsertLink(rel, label) {
+            const editor = acState.editor;
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return;
+            const caret = sel.getRangeAt(0);
+            const range = document.createRange();
+            range.setStart(acState.textNode, acState.startOffset - 2); // include the "[["
+            range.setEnd(caret.startContainer, caret.startOffset);
+            range.deleteContents();
+
+            const link = `[${label}](${rel})`;
+            const textNode = document.createTextNode(link);
+            range.insertNode(textNode);
+            range.setStartAfter(textNode);
+            range.collapse(true);
+            sel.removeAllRanges();
+            sel.addRange(range);
+            editor.focus();
+            editor.dispatchEvent(new Event('input', { bubbles: true }));
+            acHide();
+        }
+
+        function acChoose(idx) {
+            const it = acState.items[idx];
+            if (!it) return;
+            if (it.create) {
+                // Create a new .md file in the same folder as the current file,
+                // then insert a link to it (do NOT navigate away).
+                const base = dirnameOf(currentFile || "");
+                const cleanName = it.name.replace(/[\\/:*?"<>|]/g, "").trim() || "untitled";
+                const targetFile = base === "." ? (cleanName + ".md") : (base + "/" + cleanName + ".md");
+                api("/api/write", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ file: targetFile, content: "# " + cleanName + "\n" }),
+                }).then(() => {
+                    // Refresh the index so the new file is discoverable next time.
+                    acIndex = null; acLoading = false;
+                    const rel = relPath(currentFile || "", targetFile);
+                    acInsertLink(rel, cleanName);
+                }).catch(() => {
+                    // On failure, just insert the link anyway so the text is kept.
+                    const rel = relPath(currentFile || "", targetFile);
+                    acInsertLink(rel, cleanName);
+                });
+                return;
+            }
+            const rel = relPath(currentFile || "", it.file);
+            const label = it.name.replace(/\.md$/, "") || it.name;
+            acInsertLink(rel, label);
+        }
+
+        // Hook into the title editor: on input, update the popup; on keydown,
+        // handle navigation when the popup is active.
+        function acOnInput(e) {
+            if (state.editing) acUpdate();
+        }
+        function acOnKeydown(e) {
+            if (!acState.active) return;
+            if (e.key === "ArrowDown") {
+                e.preventDefault(); e.stopPropagation();
+                acState.sel = (acState.sel + 1) % acState.items.length;
+                acRender();
+            } else if (e.key === "ArrowUp") {
+                e.preventDefault(); e.stopPropagation();
+                acState.sel = (acState.sel - 1 + acState.items.length) % acState.items.length;
+                acRender();
+            } else if (e.key === "Enter" || e.key === "Tab") {
+                e.preventDefault(); e.stopPropagation();
+                acChoose(acState.sel);
+            } else if (e.key === "Escape") {
+                e.preventDefault(); e.stopPropagation();
+                acHide();
+            }
+        }
+        // Hide autocomplete when clicking outside it.
+        document.addEventListener("click", (e) => {
+            if (acState.active && !acEl.contains(e.target)) {
+                const sel = window.getSelection();
+                // Only hide fully if the caret is no longer in a [[ trigger.
+                if (sel.rangeCount && !detectTrigger(sel.getRangeAt(0))) acHide();
+            }
+        });
+
+
+        function parseMarkdown(text) {
+            const root = { title: null, body: [], children: [], depth: 0, kind: "root" };
+            const stack = [root];
+            let current = root;
+            const lines = text.split(/\r?\n/);
+            for (const line of lines) {
+                const heading = line.match(/^(#{1,6})\s+(.*?)\s*$/);
+                if (heading) {
+                    const depth = heading[1].length;
+                    const node = { title: heading[2], body: [], children: [], depth, kind: "heading" };
+                    while (stack.length > 1 && stack[stack.length - 1].depth >= depth) stack.pop();
+                    const parent = stack[stack.length - 1];
+                    parent.children.push(node);
+                    stack.push(node);
+                    current = node;
+                } else if (line.trim()) {
+                    // Markdown paragraphs, bullets, quotes and code lines are also
+                    // represented as map nodes instead of disappearing into body text.
+                    const parent = current || root;
+                    const node = {
+                        title: line.replace(/^\s*([-*+]\s+|>\s+)/, "").trim(),
+                        raw: line,
+                        body: [],
+                        children: [],
+                        depth: (parent === root ? 1 : parent.depth + 1),
+                        kind: "content"
+                    };
+                    parent.children.push(node);
+                }
+            }
+            return root;
+        }
+
+        function serializeTree(root) {
+            const out = [];
+            const pushNode = (n) => {
+                if (n === root || n.title == null || n.title === "") {
+                    for (const c of n.children) pushNode(c);
+                    return;
+                }
+                if (n.kind === "content") {
+                    out.push(n.raw != null ? n.raw : n.title);
+                } else {
+                    out.push("#".repeat(Math.max(1, n.depth)) + " " + n.title);
+                }
+                for (const l of n.body) out.push(l);
+                for (const c of n.children) pushNode(c);
+            };
+            pushNode(root);
+            while (out.length && out[out.length - 1] === "") out.pop();
+            return out.join("\n") + "\n";
+        }
+        const H_GAP = 70;
+        const V_GAP = 14;
+        const NODE_W = 190;
+
+        const state = {
+            records: new Map(),
+            links: [],
+            selectedNodes: new Set(),
+            editing: null,
+            undoStack: [],
+            pickerOpen: false
+        };
+
+        let root = null;
+
+        function measure() { return { w: NODE_W, h: 46 }; }
+
+        // Real rendered height of a node (falls back to the fixed estimate
+        // before the DOM has been measured, or for very short nodes).
+        function nodeHeight(n) {
+            const h = (n && n._realH) ? n._realH : measure().h;
+            return Math.max(h, measure().h);
+        }
+
+        function layoutHeightPass(node, x, y) {
+            if (node.children.length === 0 || node.collapsed) return nodeHeight(node);
+            let H = 0;
+            const childH = node.children.map((c) => layoutHeightPass(c, x + NODE_W + H_GAP, 0));
+            for (let i = 0; i < node.children.length; i++) H += childH[i];
+            H += (node.children.length - 1) * V_GAP;
+            return Math.max(H, nodeHeight(node));
+        }
+
+        function layout2(node, x, y) {
+            const h = nodeHeight(node);
+            node._x = x;
+            node._y = y;
+            node._h = h;
+            let yCursor = y;
+            if (node.collapsed) return;
+            const childH = node.children.map((c) => layoutHeightPass(c, x + NODE_W + H_GAP, 0));
+            for (let i = 0; i < node.children.length; i++) {
+                const c = node.children[i];
+                layout2(c, x + NODE_W + H_GAP, yCursor);
+                yCursor += childH[i] + V_GAP;
+            }
+            if (node.children.length === 0) { node._h = h; return; }
+            const total = yCursor - V_GAP - y;
+            node._h = Math.max(h, total);
+            node._y = y + (node._h - h) / 2;
+        }
+
+        function renderMarkdownLinks(text) {
+            if (!text) return "";
+            let escaped = escapeHtml(text);
+            return escaped.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
+                return `<a href="${escapeHtml(url)}" class="md-link" data-link="${escapeHtml(url)}">${escapeHtml(linkText)}</a>`;
+            });
+        }
+
+        function render() {
+            if (!root) { grid.innerHTML = '<div id="selBox"></div>'; return; }
+            const selBox = grid.querySelector("#selBox") || document.createElement("div");
+            selBox.id = "selBox";
+            grid.innerHTML = "";
+            grid.appendChild(selBox);
+
+            // ---- Pass 1: create every node div (so we can measure real heights) ----
+            const divMap = new Map();
+            (function build(n) {
+                const div = document.createElement("div");
+                div.className = "mnode" + (n === root ? " root" : "");
+                div.style.width = NODE_W + "px";
+                // Position offscreen until layout is computed (avoids flicker/reflow cost).
+                div.style.left = "-99999px";
+                div.style.top = "-99999px";
+
+                const titleHtml = n.title ? renderMarkdownLinks(n.title) : "";
+                const bodyText = n.body.join("\n");
+                const bodyHtml = bodyText ? renderMarkdownLinks(bodyText) : "";
+
+                div.innerHTML = `<div class="title">${titleHtml}</div>${
+          bodyHtml ? `<div class="body">${bodyHtml}</div>` : ""}`;
+                div._node = n;
+                div._el = div;
+                if (n !== root) {
+                    div.ondblclick = (e) => { e.stopPropagation();
+                        // Double-click toggles visibility of this node's subtree.
+                        // Editing remains available through the normal typing path.
+                        if (n.children.length) {
+                            n.collapsed = !n.collapsed;
+                            render();
+                            selectNode(n);
+                        }
+                    };
+                    div.onclick = (e) => { e.stopPropagation();
+                        handleNodeClick(e, div); };
+                    div.onkeydown = (e) => onNodeKey(e, div);
+                    div.tabIndex = 0;
+                    div.addEventListener("mousedown", (e) => onNodeMouseDown(e, div));
+                }
+                divMap.set(n, div);
+                grid.appendChild(div);
+
+                if (!n.collapsed) {
+                    for (const child of n.children) build(child);
+                }
+            })(root);
+
+            // Measure real heights (after a forced reflow) so multi-line nodes
+            // get enough vertical room and stop overlapping their neighbours.
+            grid.offsetHeight; // force layout
+            divMap.forEach((div, n) => {
+                n._realH = div.offsetHeight;
+            });
+
+            // ---- Pass 2: compute positions using measured heights ----
+            layout2(root, 40, 60);
+            const h = root._h;
+            grid.style.height = Math.max(h + 120, 100) + "px";
+
+            // ---- Pass 3: place nodes + draw links ----
+            divMap.forEach((div, n) => {
+                div.style.left = n._x + "px";
+                div.style.top = n._y + "px";
+                if (state.selectedNodes.has(n)) div.classList.add("selected");
+            });
+
+            // links (anchor to each node's measured vertical centre)
+            (function walk(n) {
+                if (n.collapsed) return;
+                for (const c of n.children) {
+                    const x1 = n._x + NODE_W,
+                        y1 = n._y + Math.min(nodeHeight(n) / 2, 23);
+                    const x2 = c._x,
+                        y2 = c._y + Math.min(nodeHeight(c) / 2, 23);
+
+                    const minX = Math.min(x1, x2);
+                    const minY = Math.min(y1, y2);
+                    const maxX = Math.max(x1, x2);
+                    const maxY = Math.max(y1, y2);
+                    const w = Math.max(maxX - minX, 1);
+                    const h = Math.max(maxY - minY, 1);
+
+                    const el = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+                    el.setAttribute("class", "mlink");
+                    el.setAttribute("width", (w + 4) + "px");
+                    el.setAttribute("height", (h + 4) + "px");
+                    el.style.left = (minX - 2) + "px";
+                    el.style.top = (minY - 2) + "px";
+
+                    const sx = x1 - minX + 2;
+                    const sy = y1 - minY + 2;
+                    const ex = x2 - minX + 2;
+                    const ey = y2 - minY + 2;
+                    const dx = (ex - sx) / 2;
+                    const d = `M ${sx} ${sy} C ${sx + dx} ${sy}, ${ex - dx} ${ey}, ${ex} ${ey}`;
+                    el.innerHTML = `<path d="${d}" stroke="#3a4456" stroke-width="2" fill="none"/>`;
+                    grid.appendChild(el);
+                    walk(c);
+                }
+            })(root);
+
+            grid.querySelectorAll(".md-link").forEach(a => {
+                a.addEventListener("click", (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const url = a.getAttribute("data-link") || a.getAttribute("href");
+                    if (url) navigateLink(url);
+                });
+            });
+        }
+
+        /* ---------------- Selection ---------------- */
+        function handleNodeClick(e, div) {
+            const n = div._node;
+            if (!n || n === root) return;
+            if (e.ctrlKey || e.metaKey) {
+                if (state.selectedNodes.has(n)) {
+                    state.selectedNodes.delete(n);
+                    div.classList.remove("selected");
+                } else {
+                    state.selectedNodes.add(n);
+                    div.classList.add("selected");
+                }
+                if (state.editing) commitEdit();
+                const nd = findDiv(root, n);
+                if (nd) nd.focus({ preventScroll: true });
+            } else {
+                clearSelection();
+                state.selectedNodes.add(n);
+                div.classList.add("selected");
+                if (state.editing) commitEdit();
+                const newDiv = findDiv(root, n);
+                if (newDiv) {
+                    if (!newDiv.classList.contains("selected")) {
+                        newDiv.classList.add("selected");
+                    }
+                    newDiv.focus({ preventScroll: true });
+                } else {
+                    div.focus({ preventScroll: true });
+                }
+            }
+            updateStatus();
+        }
+
+        function clearSelection() {
+            grid.querySelectorAll(".mnode.selected").forEach(el => el.classList.remove("selected"));
+            state.selectedNodes.clear();
+        }
+
+        function selectNode(n) {
+            clearSelection();
+            if (!n) return;
+            state.selectedNodes.add(n);
+            const div = findDiv(root, n);
+            if (div) {
+                div.classList.add("selected");
+                div.focus({ preventScroll: true });
+                div.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+            }
+            updateStatus();
+        }
+
+        function selectNodes(nodes) {
+            clearSelection();
+            for (const n of nodes) {
+                if (!n || n === root) continue;
+                state.selectedNodes.add(n);
+                const div = findDiv(root, n);
+                if (div) div.classList.add("selected");
+            }
+            updateStatus();
+        }
+
+        function updateStatus() {
+            const count = state.selectedNodes.size;
+            const s = document.getElementById("status");
+            if (count > 1) s.textContent = count + " nodes selected";
+            else if (count === 1) s.textContent = "";
+            else s.textContent = "";
+        }
+
+        /* ---------------- Box selection (left drag) ---------------- */
+        let selBox = null;
+        let isBoxDragging = false;
+        let boxStartX = 0,
+            boxStartY = 0;
+        let boxStartClientX = 0,
+            boxStartClientY = 0;
+        let boxDragJustEnded = false;
+        // Active document-level click listener installed by startEdit(); used to
+        // remove it on commit so it doesn't leak and re-trigger commits forever.
+        let editClickCleanup = null;
+
+        function initSelBox() {
+            selBox = document.getElementById("selBox");
+            if (!selBox) {
+                selBox = document.createElement("div");
+                selBox.id = "selBox";
+                grid.appendChild(selBox);
+            }
+        }
+
+        function getCanvasOffset() {
+            const rect = canvasEl.getBoundingClientRect();
+            const scrollLeft = canvasEl.scrollLeft || 0;
+            const scrollTop = canvasEl.scrollTop || 0;
+            // #selBox is a child of #grid, which is the SCROLLED content inside
+            // #canvas. So grid's viewport origin is (rect.left - scrollLeft).
+            // A content-space x that renders under clientX is:
+            //   clientX - (rect.left - scrollLeft) = clientX - rect.left + scrollLeft
+            // i.e. getCanvasOffset must subtract the scroll, NOT add it.
+            return { left: rect.left - scrollLeft, top: rect.top - scrollTop };
+        }
+
+        /* ---------------- Panning (middle mouse / Alt+drag) ---------------- */
+        let isPanning = false;
+        let panStartX = 0,
+            panStartY = 0;
+        let panStartScrollLeft = 0,
+            panStartScrollTop = 0;
+
+        function startPan(e) {
+            isPanning = true;
+            panStartX = e.clientX;
+            panStartY = e.clientY;
+            panStartScrollLeft = canvasEl.scrollLeft;
+            panStartScrollTop = canvasEl.scrollTop;
+            canvasEl.classList.add("panning");
+            e.preventDefault();
+        }
+
+        function doPan(e) {
+            if (!isPanning) return;
+            const dx = e.clientX - panStartX;
+            const dy = e.clientY - panStartY;
+            canvasEl.scrollLeft = panStartScrollLeft - dx;
+            canvasEl.scrollTop = panStartScrollTop - dy;
+            e.preventDefault();
+        }
+
+        function stopPan() {
+            isPanning = false;
+            canvasEl.classList.remove("panning");
+        }
+
+        /* ---------------- Unified mouse handlers ---------------- */
+
+        grid.addEventListener("mousedown", (e) => {
+            if (e.target.closest(".mnode") || e.target.closest(".md-link")) return;
+            if (state.editing) commitEdit();
+
+            // Middle button → pan
+            if (e.button === 1) {
+                startPan(e);
+                return;
+            }
+
+            // Left button + Alt → pan
+            if (e.button === 0 && e.altKey) {
+                startPan(e);
+                return;
+            }
+
+            // Left button only → box selection
+            if (e.button === 0) {
+                boxDragJustEnded = false;
+                boxStartClientX = e.clientX;
+                boxStartClientY = e.clientY;
+
+                const off = getCanvasOffset();
+                boxStartX = e.clientX - off.left;
+                boxStartY = e.clientY - off.top;
+                isBoxDragging = true;
+                selBox.style.display = "block";
+                selBox.style.left = boxStartX + "px";
+                selBox.style.top = boxStartY + "px";
+                selBox.style.width = "0px";
+                selBox.style.height = "0px";
+
+                if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+                    clearSelection();
+                }
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            // Panning
+            if (isPanning) {
+                doPan(e);
+                return;
+            }
+
+            // Box selection
+            if (isBoxDragging) {
+                const dx = e.clientX - boxStartClientX;
+                const dy = e.clientY - boxStartClientY;
+                const moved = Math.sqrt(dx * dx + dy * dy) > 5;
+
+                const off = getCanvasOffset();
+                const cx = e.clientX - off.left;
+                const cy = e.clientY - off.top;
+                const x = Math.min(boxStartX, cx);
+                const y = Math.min(boxStartY, cy);
+                const w = Math.abs(cx - boxStartX);
+                const h = Math.abs(cy - boxStartY);
+                selBox.style.left = x + "px";
+                selBox.style.top = y + "px";
+                selBox.style.width = w + "px";
+                selBox.style.height = h + "px";
+
+                const box = { x, y, w, h };
+                const nodes = [];
+                grid.querySelectorAll(".mnode").forEach(el => {
+                    if (el.classList.contains("root")) return;
+                    const n = el._node;
+                    if (!n) return;
+                    const rect = el.getBoundingClientRect();
+                    const canvasRect = canvasEl.getBoundingClientRect();
+                    const scrollLeft = canvasEl.scrollLeft || 0;
+                    const scrollTop = canvasEl.scrollTop || 0;
+                    const nx = rect.left - canvasRect.left + scrollLeft;
+                    const ny = rect.top - canvasRect.top + scrollTop;
+                    const nw = rect.width;
+                    const nh = rect.height;
+                    if (nx < box.x + box.w && nx + nw > box.x &&
+                        ny < box.y + box.h && ny + nh > box.y) {
+                        nodes.push(n);
+                    }
+                });
+
+                if (e.shiftKey || e.ctrlKey || e.metaKey) {
+                    for (const n of nodes) {
+                        if (!state.selectedNodes.has(n)) {
+                            state.selectedNodes.add(n);
+                            const div = findDiv(root, n);
+                            if (div) div.classList.add("selected");
+                        }
+                    }
+                } else {
+                    clearSelection();
+                    for (const n of nodes) {
+                        state.selectedNodes.add(n);
+                        const div = findDiv(root, n);
+                        if (div) div.classList.add("selected");
+                    }
+                }
+                updateStatus();
+                e.preventDefault();
+            }
+
+            // Node drag (existing)
+            if (dragState.active) {
+                dragState.mousemove(e);
+            }
+
+            // Alt key cursor hint
+            if (e.altKey && !e.target.closest(".mnode")) {
+                canvasEl.classList.add("alt-pan");
+            } else {
+                canvasEl.classList.remove("alt-pan");
+            }
+        });
+
+        document.addEventListener("mouseup", (e) => {
+            // Panning
+            if (isPanning) {
+                stopPan();
+                return;
+            }
+
+            // Box selection
+            if (isBoxDragging) {
+                isBoxDragging = false;
+                selBox.style.display = "none";
+                selBox.style.width = "0px";
+                selBox.style.height = "0px";
+                if (state.selectedNodes.size === 0) {
+                    clearSelection();
+                }
+                boxDragJustEnded = true;
+                updateStatus();
+            }
+
+            // Node drag (existing)
+            if (dragState.active) {
+                dragState.mouseup(e);
+            }
+        });
+
+        // Prevent context menu on canvas (default), then show our own menu when
+        // the user right-clicks an actual node.
+        canvasEl.addEventListener("contextmenu", (e) => {
+            e.preventDefault();
+            const nodeEl = e.target.closest && e.target.closest(".mnode");
+            const ctxMenu = document.getElementById("ctxMenu");
+            if (!nodeEl || nodeEl.classList.contains("root")) {
+                ctxMenu.classList.add("hidden");
+                return;
+            }
+            const n = nodeEl._node;
+            if (!n) { ctxMenu.classList.add("hidden"); return; }
+            ctxMenu.style.left = Math.min(e.clientX, window.innerWidth - 180) + "px";
+            ctxMenu.style.top = Math.min(e.clientY, window.innerHeight - 60) + "px";
+            ctxMenu.classList.remove("hidden");
+            ctxMenu.dataset.node = ""; // mark open
+            ctxMenu._node = n;
+        });
+
+        // Hide the context menu on any outside click.
+        document.addEventListener("click", (e) => {
+            const ctxMenu = document.getElementById("ctxMenu");
+            if (!ctxMenu.contains(e.target)) ctxMenu.classList.add("hidden");
+        });
+
+        document.getElementById("ctxLink").addEventListener("click", () => {
+            const ctxMenu = document.getElementById("ctxMenu");
+            const n = ctxMenu._node;
+            ctxMenu.classList.add("hidden");
+            if (n) insertLinkToFile(n);
+        });
+
+        // Click on canvas background – clear selection, but only if no box‑drag just happened
+        document.addEventListener("click", (e) => {
+            if ((e.target.id === "grid" || e.target === canvasEl) && !e.altKey) {
+                if (boxDragJustEnded) {
+                    boxDragJustEnded = false;
+                    return;
+                }
+                if (!state.editing) {
+                    clearSelection();
+                    updateStatus();
+                }
+            }
+        });
+
+        // Alt key up/down for cursor hint
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Alt" && !e.target.closest(".mnode")) {
+                canvasEl.classList.add("alt-pan");
+            }
+        });
+        document.addEventListener("keyup", (e) => {
+            if (e.key === "Alt") {
+                canvasEl.classList.remove("alt-pan");
+            }
+        });
+
+        /* ---------------- Node Drag & Drop (subtree move) ---------------- */
+
+        const dragState = {
+            active: false,
+            dragging: false,
+            nodes: [],
+            ghost: null,
+            targetEl: null,
+            dropMode: null,
+            startX: 0,
+            startY: 0,
+            offsetX: 0,
+            offsetY: 0,
+            moved: false,
+
+            mousedown(e, div) {
+                const n = div._node;
+                if (!n || n === root) return;
+                if (state.editing) commitEdit();
+                if (e.button !== 0) return;
+                if (e.target.closest(".md-link")) return;
+                if (e.altKey) return; // alt is for panning
+
+                let dragNodes = [];
+                if (state.selectedNodes.has(n)) {
+                    dragNodes = [...state.selectedNodes];
+                } else {
+                    dragNodes = [n];
+                }
+                dragNodes = dragNodes.filter(n => n !== root);
+                if (dragNodes.length === 0) return;
+
+                this.active = true;
+                this.dragging = false;
+                this.nodes = dragNodes;
+                this.moved = false;
+                this.startX = e.clientX;
+                this.startY = e.clientY;
+                this.offsetX = e.clientX - div.getBoundingClientRect().left;
+                this.offsetY = e.clientY - div.getBoundingClientRect().top;
+
+                e.preventDefault();
+
+                const ghost = div.cloneNode(true);
+                ghost.className = "mnode drag-ghost";
+                ghost.style.width = div.offsetWidth + "px";
+                ghost.style.left = (e.clientX - this.offsetX) + "px";
+                ghost.style.top = (e.clientY - this.offsetY) + "px";
+                ghost.style.position = "fixed";
+                ghost.style.pointerEvents = "none";
+                ghost.style.zIndex = "100";
+                document.body.appendChild(ghost);
+                this.ghost = ghost;
+
+                for (const dn of this.nodes) {
+                    const d = findDiv(root, dn);
+                    if (d) d.classList.add("drag-source");
+                }
+            },
+
+            mousemove(e) {
+                if (!this.active) return;
+                const dx = e.clientX - this.startX;
+                const dy = e.clientY - this.startY;
+                if (Math.sqrt(dx * dx + dy * dy) > 6) {
+                    this.dragging = true;
+                    this.moved = true;
+                }
+                if (!this.dragging) return;
+
+                this.ghost.style.left = (e.clientX - this.offsetX) + "px";
+                this.ghost.style.top = (e.clientY - this.offsetY) + "px";
+
+                const el = document.elementFromPoint(e.clientX, e.clientY);
+                const targetDiv = el ? el.closest(".mnode") : null;
+                const targetNode = targetDiv ? targetDiv._node : null;
+
+                grid.querySelectorAll(".mnode.drag-over").forEach(el => el.classList.remove("drag-over"));
+                grid.classList.remove("drop-target-child", "drop-insert-before", "drop-insert-after");
+
+                if (targetDiv && targetNode && targetNode !== root) {
+                    const isDragged = this.nodes.includes(targetNode);
+                    const isDescendant = this.nodes.some(dn => isDescendantOf(dn, targetNode));
+                    if (!isDragged && !isDescendant) {
+                        const rect = targetDiv.getBoundingClientRect();
+                        const relY = (e.clientY - rect.top) / rect.height;
+                        const isChild = e.ctrlKey || e.metaKey || relY > 0.25 && relY < 0.75;
+
+                        if (isChild) {
+                            this.dropMode = 'child';
+                            targetDiv.classList.add("drag-over");
+                            grid.classList.add("drop-target-child");
+                        } else if (relY < 0.4) {
+                            this.dropMode = 'before';
+                            targetDiv.classList.add("drag-over");
+                            grid.classList.add("drop-insert-before");
+                        } else {
+                            this.dropMode = 'after';
+                            targetDiv.classList.add("drag-over");
+                            grid.classList.add("drop-insert-after");
+                        }
+                        this.targetEl = targetDiv;
+                    } else {
+                        this.targetEl = null;
+                        this.dropMode = null;
+                    }
+                } else {
+                    this.targetEl = null;
+                    this.dropMode = null;
+                }
+            },
+
+            mouseup(e) {
+                if (!this.active) {
+                    this.cleanup();
+                    return;
+                }
+
+                const wasDragging = this.dragging;
+                const targetEl = this.targetEl;
+                const dropMode = this.dropMode;
+                const draggedNodes = [...this.nodes];
+
+                this.cleanup();
+
+                if (wasDragging && targetEl && dropMode) {
+                    const targetNode = targetEl._node;
+                    if (!targetNode || targetNode === root) return;
+                    if (draggedNodes.some(n => n === targetNode || isDescendantOf(n, targetNode))) return;
+
+                    pushUndo();
+
+                    const movedNodes = [];
+                    for (const n of draggedNodes) {
+                        const parent = findParent(root, n);
+                        if (!parent) continue;
+                        const idx = parent.children.indexOf(n);
+                        if (idx === -1) continue;
+                        parent.children.splice(idx, 1);
+
+                        if (dropMode === 'child') {
+                            targetNode.children.push(n);
+                            setSubtreeDepth(n, targetNode.depth + 1);
+                        } else if (dropMode === 'before') {
+                            const targetParent = findParent(root, targetNode);
+                            if (!targetParent) continue;
+                            const tidx = targetParent.children.indexOf(targetNode);
+                            targetParent.children.splice(tidx, 0, n);
+                            setSubtreeDepth(n, targetParent.depth + 1);
+                        } else if (dropMode === 'after') {
+                            const targetParent = findParent(root, targetNode);
+                            if (!targetParent) continue;
+                            const tidx = targetParent.children.indexOf(targetNode);
+                            targetParent.children.splice(tidx + 1, 0, n);
+                            setSubtreeDepth(n, targetParent.depth + 1);
+                        }
+                        movedNodes.push(n);
+                    }
+
+                    render();
+                    if (movedNodes.length > 0) {
+                        selectNodes(movedNodes);
+                    } else {
+                        clearSelection();
+                    }
+                    updateStatus();
+                    scheduleAutoSave();
+                } else if (wasDragging) {
+                    render();
+                    const sel = [...state.selectedNodes];
+                    for (const n of sel) {
+                        const d = findDiv(root, n);
+                        if (d) d.classList.add("selected");
+                    }
+                }
+                this.active = false;
+                this.dragging = false;
+            },
+
+            cleanup() {
+                if (this.ghost && this.ghost.parentNode) {
+                    this.ghost.parentNode.removeChild(this.ghost);
+                }
+                this.ghost = null;
+                grid.querySelectorAll(".mnode.drag-over").forEach(el => el.classList.remove("drag-over"));
+                grid.querySelectorAll(".mnode.drag-source").forEach(el => el.classList.remove("drag-source"));
+                grid.classList.remove("drop-target-child", "drop-insert-before", "drop-insert-after");
+                this.targetEl = null;
+                this.dropMode = null;
+                this.nodes = [];
+                this.active = false;
+                this.dragging = false;
+            }
+        };
+
+        function onNodeMouseDown(e, div) {
+            dragState.mousedown(e, div);
+        }
+
+        function isDescendantOf(ancestor, node) {
+            const walk = (n) => {
+                for (const c of n.children) {
+                    if (c === node) return true;
+                    if (walk(c)) return true;
+                }
+                return false;
+            };
+            return walk(ancestor);
+        }
+
+        /* ---------------- Link navigation ---------------- */
+        function navigateLink(url) {
+            if (!url) return;
+            let target = url;
+            if (currentFile) {
+                const dir = currentFile.includes("/") ? currentFile.substring(0, currentFile.lastIndexOf("/") + 1) : "";
+                target = dir + url;
+                const parts = target.split("/");
+                const resolved = [];
+                for (const p of parts) {
+                    if (p === "..") { resolved.pop(); } else if (p !== "." && p !== "") { resolved.push(p); }
+                }
+                target = resolved.join("/");
+            }
+            if (!target.toLowerCase().endsWith(".md")) target += ".md";
+            openFile(target);
+        }
+
+        /* ---------------- Editing ---------------- */
+        function selectAll(t) {
+            const r = document.createRange();
+            r.selectNodeContents(t);
+            const sel = getSelection();
+            sel.removeAllRanges();
+            sel.addRange(r);
+        }
+
+        // Place the caret at the very end of an element (no selection), so that
+        // subsequent typing APPENDS to the existing text instead of replacing it.
+        function placeCaretAtEnd(el) {
+            el.focus();
+            const r = document.createRange();
+            r.selectNodeContents(el);
+            r.collapse(false); // false = collapse to the end
+            const sel = getSelection();
+            sel.removeAllRanges();
+            sel.addRange(r);
+        }
+
+        function commitEdit() {
+            if (!state.editing) return;
+            // Don't commit (and thus don't tear down edit mode) while the insert
+            // picker is open — that would discard the in-progress edit. The picker
+            // closes with Escape/Cancel without committing.
+            if (state.pickerOpen) return;
+            const n = state.editing;
+            // Clear the editing flag and detach the leaked click listener BEFORE
+            // anything else, so navigation/selection is restored immediately even
+            // if the node's DOM was replaced by render() below.
+            state.editing = null;
+            if (editClickCleanup) {
+                document.removeEventListener("click", editClickCleanup);
+                editClickCleanup = null;
+            }
+            const div = findDiv(root, n);
+            if (!div) return;
+            const t = div.querySelector(".title");
+            if (!t) return;
+            const val = t.textContent.trim();
+            const changed = val !== n.title;
+            if (changed) { pushUndo();
+                n.title = val;
+                if (n.kind === "content") n.raw = val;
+            }
+            const isEmpty = !val;
+            if (isEmpty) {
+                removeNode(n);
+                render();
+                const neighbor = findNeighbor(n);
+                if (neighbor) selectNode(neighbor);
+                else clearSelection();
+            } else {
+                render();
+                if (changed) {
+                    const nd = findDiv(root, n);
+                    if (nd) selectNode(n);
+                } else {
+                    if (state.selectedNodes.has(n)) {
+                        const nd = findDiv(root, n);
+                        if (nd) {
+                            nd.classList.add("selected");
+                            nd.focus({ preventScroll: true });
+                        }
+                    }
+                }
+            }
+            updateStatus();
+            // Commit edits made by double-click or clicking elsewhere immediately.
+            // This writes back to the original .md file, not only to the canvas.
+            scheduleAutoSave();
+            acHide();
+            return !isEmpty;
+        }
+
+        function startEdit(div, initialChar, isNew) {
+            const n = div._node;
+            if (!n || n === root) return;
+            // Remove any leftover click-to-commit listener from a previous edit
+            // that never committed (e.g. starting a new edit before finishing one).
+            if (editClickCleanup) {
+                document.removeEventListener("click", editClickCleanup);
+                editClickCleanup = null;
+            }
+            if (state.selectedNodes.size > 1) {
+                clearSelection();
+                state.selectedNodes.add(n);
+                div.classList.add("selected");
+                updateStatus();
+            }
+            state.editing = n;
+            const t = div.querySelector(".title");
+            t.contentEditable = "true";
+            t.focus();
+            if (!state.selectedNodes.has(n)) {
+                clearSelection();
+                state.selectedNodes.add(n);
+                div.classList.add("selected");
+                updateStatus();
+            }
+            if (isNew) {
+                // Brand‑new placeholder node ("new"): the first keystroke
+                // replaces the placeholder entirely.
+                if (initialChar) { t.textContent = initialChar; selectAll(t); }
+                else selectAll(t);
+            } else {
+                // EXISTING node: show the raw source text (not the rendered
+                // link HTML) so editing is consistent, then APPEND the typed
+                // character / drop the caret at the end — never wipe content.
+                t.textContent = n.title;
+                if (initialChar) t.textContent = n.title + initialChar;
+                placeCaretAtEnd(t);
+            }
+
+            const commit = () => {
+                if (state.editing === n) commitEdit();
+            };
+            const doneOuter = (e) => {
+                if (!t.contains(e.target)) {
+                    if (state.editing === n) commitEdit();
+                }
+            };
+            // Track this listener so commitEdit() can remove it (prevents leaks
+            // that would keep re-committing and freeze navigation after editing).
+            editClickCleanup = doneOuter;
+            const editKeys = (e) => {
+                // [[ autocomplete has priority for navigation keys while active.
+                if (acState.active) {
+                    if (["ArrowDown", "ArrowUp", "Enter", "Tab", "Escape"].includes(e.key)) {
+                        acOnKeydown(e);
+                        return;
+                    }
+                }
+                if (e.key === "Escape") { e.preventDefault();
+                    e.stopPropagation();
+                    commitEdit(); } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (state.editing === n) {
+                        const ok = commitEdit();
+                        if (ok) addNode(n, false);
+                    }
+                } else if (e.key === "Tab") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (state.editing === n) {
+                        const ok = commitEdit();
+                        if (ok) addNode(n, true);
+                    }
+                }
+            };
+            document.addEventListener("click", doneOuter);
+            t.addEventListener("keydown", editKeys);
+            t.addEventListener("input", acOnInput);
+        }
+
+        // Open the insert-mode picker to build a relative [label](path.md) link
+        // and insert it into the currently-edited node. If no node is being edited,
+        // optionally start editing the given node first (used by the context menu).
+        function insertLinkToFile(targetNode) {
+            if (state.editing) {
+                // Already editing: just open the picker in insert mode.
+                openLinkPicker();
+            } else if (targetNode) {
+                // Not editing: start edit (append/caret behaviour) then open picker.
+                const div = findDiv(root, targetNode);
+                if (!div) return;
+                startEdit(div); // append/caret mode, no char → caret at end
+                openLinkPicker();
+            }
+            // If neither editing nor a target node: no-op.
+        }
+
+        function openLinkPicker() {
+            const n = state.editing;
+            if (!n) return;
+            const div = findDiv(root, n);
+            const editorEl = div ? div.querySelector(".title") : null;
+            pickerReturnFocus = editorEl;
+            state.pickerOpen = true;
+            showPicker({
+                onSelect: (filePath) => {
+                    // Self-link guard.
+                    if (currentFile && normalizePath(filePath) === normalizePath(currentFile)) {
+                        return;
+                    }
+                    const label = basenameOf(filePath).replace(/\.md$/, "") || basenameOf(filePath);
+                    const rel = relPath(currentFile || "", filePath);
+                    const link = `[${label}](${rel})`;
+                    if (editorEl && document.contains(editorEl)) {
+                        insertAtCaret(editorEl, link);
+                    }
+                }
+            });
+        }
+
+        function onNodeKey(e, div) {
+            const n = div._node;
+            if (state.editing) return;
+            if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey && e.key !== " ") {
+                e.preventDefault();
+                startEdit(div, e.key);
+                return;
+            }
+            if (e.key === "Tab") {
+                e.preventDefault();
+                if (e.shiftKey) unindent(n);
+                else addNode(n, true);
+            } else if (e.key === "Enter") {
+                e.preventDefault();
+                addNode(n, false);
+            } else if (e.key === "Delete" || e.key === "Backspace") {
+                if (div.classList.contains("selected") && !div.querySelector(".title").isContentEditable) {
+                    e.preventDefault();
+                    deleteSelectedNodes();
+                }
+            } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+                e.preventDefault();
+                const next = e.key === "ArrowDown" ? nextSibling(n) : firstChild(n);
+                if (next) { clearSelection();
+                    selectNode(next); }
+            } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+                e.preventDefault();
+                const next = e.key === "ArrowUp" ? prevSibling(n) : parentOf(n);
+                if (next) { clearSelection();
+                    selectNode(next); }
+            } else if (e.key === " " && !e.ctrlKey && !e.metaKey) {
+                e.preventDefault();
+                if (state.selectedNodes.has(n)) {
+                    state.selectedNodes.delete(n);
+                    div.classList.remove("selected");
+                } else {
+                    state.selectedNodes.add(n);
+                    div.classList.add("selected");
+                }
+                updateStatus();
+            }
+        }
+
+        /* ---------------- Tree helpers ---------------- */
+        function firstChild(n) { return n.children[0] || null; }
+
+        function nextSibling(n) {
+            const p = parentOf(n);
+            if (!p) return null;
+            const i = p.children.indexOf(n);
+            return p.children[i + 1] || null;
+        }
+
+        function prevSibling(n) {
+            const p = parentOf(n);
+            if (!p) return null;
+            const i = p.children.indexOf(n);
+            return p.children[i - 1] || null;
+        }
+
+        function parentOf(n) { return findParent(root, n); }
+
+        function findParent(node, target) {
+            for (const c of node.children) {
+                if (c === target) return node;
+                const r = findParent(c, target);
+                if (r) return r;
+            }
+            return null;
+        }
+
+        function findDiv(node, target) {
+            for (const child of [...grid.children]) {
+                if (child._node === target) return child;
+            }
+            return null;
+        }
+
+        function getAllNodes(node) {
+            const result = [];
+            const walk = (n) => {
+                result.push(n);
+                for (const c of n.children) walk(c);
+            };
+            walk(node || root);
+            return result;
+        }
+
+        /* ---------------- Delete with neighbor navigation ---------------- */
+        function findNeighbor(n) {
+            const ns = nextSibling(n);
+            if (ns) return ns;
+            const ps = prevSibling(n);
+            if (ps) return ps;
+            const p = parentOf(n);
+            return p === root ? null : p;
+        }
+
+        function deleteSelectedNodes() {
+            const toDelete = [...state.selectedNodes];
+            if (toDelete.length === 0) return;
+            pushUndo();
+            const neighbor = findNeighbor(toDelete[0]);
+            for (const n of toDelete) {
+                removeNode(n);
+            }
+            render();
+            // After batch delete, clear selection or select a neighbor
+            if (toDelete.length === 1 && neighbor) {
+                selectNode(neighbor);
+            } else if (toDelete.length === 1) {
+                const all = getAllNodes(root);
+                const nonRoot = all.filter(n => n !== root && n.title);
+                if (nonRoot.length) selectNode(nonRoot[0]);
+                else clearSelection();
+            } else {
+                // multiple deleted: clear selection, maybe select the neighbor of the first
+                if (neighbor) selectNode(neighbor);
+                else clearSelection();
+            }
+            updateStatus();
+            scheduleAutoSave();
+        }
+
+        function removeNode(n) {
+            const parent = findParent(root, n);
+            if (!parent) return;
+            const idx = parent.children.indexOf(n);
+            if (idx !== -1) parent.children.splice(idx, 1);
+        }
+
+        function setSubtreeDepth(node, depth) {
+            node.depth = depth;
+            for (const child of node.children) {
+                setSubtreeDepth(child, depth + 1);
+            }
+        }
+
+        function unindent(n) {
+            const gp = findParent(root, n);
+            if (!gp) return;
+            const ggp = findParent(root, gp);
+            if (!ggp) return;
+            pushUndo();
+            const idx = gp.children.indexOf(n);
+            gp.children.splice(idx, 1);
+            const gidx = ggp.children.indexOf(gp);
+            ggp.children.splice(gidx + 1, 0, n);
+            setSubtreeDepth(n, gp.depth);
+            render();
+            selectNode(n);
+            scheduleAutoSave();
+        }
+
+        function addNode(parent, asChild) {
+            pushUndo();
+            let newNode;
+            if (asChild) {
+                newNode = { title: "new", body: [], children: [], depth: parent.depth + 1 };
+                parent.children.push(newNode);
+            } else {
+                const gp = findParent(root, parent);
+                if (!gp) {
+                    newNode = { title: "new", body: [], children: [], depth: 1 };
+                    root.children.push(newNode);
+                } else {
+                    newNode = { title: "new", body: [], children: [], depth: parent.depth };
+                    const idx = gp.children.indexOf(parent);
+                    gp.children.splice(idx + 1, 0, newNode);
+                }
+            }
+            render();
+            const ndiv = findDiv(root, newNode);
+            if (ndiv) {
+                clearSelection();
+                state.selectedNodes.add(newNode);
+                ndiv.classList.add("selected");
+                updateStatus();
+                startEdit(ndiv, null, true);
+            }
+            scheduleAutoSave();
+        }
+
+        let saveTimer = null;
+
+        function scheduleAutoSave() {
+            if (!currentFile) return;
+            if (saveTimer) clearTimeout(saveTimer);
+            saveTimer = setTimeout(async () => {
+                await saveQuietly();
+            }, 400);
+        }
+
+        async function saveQuietly() {
+            if (!currentFile) return;
+            const text = serializeTree(root);
+            try {
+                await api("/api/write", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ file: currentFile, content: text }),
+                });
+                flash("autosaved ✓");
+            } catch (e) { console.error("Autosave failed", e); }
+        }
+
+        function pushUndo() {
+            state.undoStack.push(serializeTree(root).split("\n"));
+            if (state.undoStack.length > 100) state.undoStack.shift();
+            scheduleAutoSave();
+        }
+
+        function undo() {
+            if (!state.undoStack.length) return;
+            const text = state.undoStack.pop().join("\n");
+            root = parseMarkdown(text);
+            clearSelection();
+            render();
+            const all = getAllNodes(root);
+            const nonRoot = all.filter(n => n !== root && n.title);
+            if (nonRoot.length) selectNode(nonRoot[0]);
+            updateStatus();
+            scheduleAutoSave();
+        }
+
+        /* ---------------- Navigation History ---------------- */
+        let historyStack = [];
+        let historyIndex = -1;
+
+        function pushHistory(file) {
+            if (historyIndex < historyStack.length - 1) {
+                historyStack = historyStack.slice(0, historyIndex + 1);
+            }
+            if (historyStack[historyStack.length - 1] !== file) {
+                historyStack.push(file);
+                historyIndex = historyStack.length - 1;
+            }
+            updateHistoryButtons();
+        }
+
+        function updateHistoryButtons() {
+            const b = document.getElementById("backBtn");
+            const f = document.getElementById("forwardBtn");
+            if (b) b.disabled = (historyIndex <= 0);
+            if (f) f.disabled = (historyIndex >= historyStack.length - 1);
+        }
+
+        document.getElementById("backBtn").onclick = () => {
+            if (historyIndex > 0) {
+                historyIndex--;
+                openFile(historyStack[historyIndex], false);
+            }
+        };
+        document.getElementById("forwardBtn").onclick = () => {
+            if (historyIndex < historyStack.length - 1) {
+                historyIndex++;
+                openFile(historyStack[historyIndex], false);
+            }
+        };
+
+        /* ---------------- Global Delete handler (batch delete) ---------------- */
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Delete" || e.key === "Backspace") {
+                // If editing a node, let the node handler deal with it
+                if (state.editing) return;
+                // Never delete while typing in an editor; otherwise the global
+                // handler must still handle selection made by box-select. The
+                // browser may retain a node element as event.target after a drag.
+                if (e.target.isContentEditable || (e.target.closest && e.target.closest("[contenteditable=\"true\"]"))) return;
+                // If there are selected nodes, delete them all
+                if (state.selectedNodes.size > 0) {
+                    e.preventDefault();
+                    deleteSelectedNodes();
+                }
+            }
+
+            // Ctrl+Z undo
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") {
+                e.preventDefault();
+                undo();
+            }
+
+            // Ctrl+S save
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+                e.preventDefault();
+                save();
+            }
+
+            // Ctrl+K — insert a relative .md link (only while editing a node)
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+                if (state.editing) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    insertLinkToFile();
+                }
+            }
+
+            // Escape closes the insert picker without committing the edit.
+            if (e.key === "Escape" && state.pickerOpen) {
+                e.preventDefault();
+                e.stopPropagation();
+                hidePicker();
+            }
+        });
+
+        /* ---------------- Save / Open ---------------- */
+        async function openFile(path, pushToHistory = true) {
+            try {
+                const data = await api("/api/read?file=" + encodeURIComponent(path));
+                currentFile = data.path;
+                root = parseMarkdown(data.content);
+                state.undoStack = [];
+                state.selectedNodes.clear();
+                document.getElementById("crumbs").innerHTML = "<b>" + escapeHtml(currentFile) + "</b>";
+                document.getElementById("saveBtn").disabled = false;
+                hidePicker();
+                render();
+                const all = getAllNodes(root);
+                const nonRoot = all.filter(n => n !== root && n.title);
+                if (nonRoot.length) selectNode(nonRoot[0]);
+                else clearSelection();
+                updateStatus();
+                if (pushToHistory) pushHistory(currentFile);
+                updateHistoryButtons();
+            } catch (e) {
+                if (e.message && (e.message.includes("not found") || e.message.includes("404"))) {
+                    const name = path.split('/').pop().replace('.md', '') || "new";
+                    const defaultContent = "# " + name + "\n";
+                    try {
+                        await api("/api/write", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ file: path, content: defaultContent }),
+                        });
+                        const data = await api("/api/read?file=" + encodeURIComponent(path));
+                        currentFile = data.path;
+                        root = parseMarkdown(data.content);
+                        state.undoStack = [];
+                        state.selectedNodes.clear();
+                        document.getElementById("crumbs").innerHTML = "<b>" + escapeHtml(currentFile) + "</b>";
+                        document.getElementById("saveBtn").disabled = false;
+                        hidePicker();
+                        render();
+                        const all = getAllNodes(root);
+                        const nonRoot = all.filter(n => n !== root && n.title);
+                        if (nonRoot.length) selectNode(nonRoot[0]);
+                        else clearSelection();
+                        updateStatus();
+                        flash("created new file ✓");
+                        if (pushToHistory) pushHistory(currentFile);
+                        updateHistoryButtons();
+                    } catch (err2) {
+                        alert("Failed to create file: " + err2.message);
+                    }
+                } else {
+                    alert("Open failed: " + e.message);
+                }
+            }
+        }
+
+        async function save() {
+            if (!currentFile) return;
+            const text = serializeTree(root);
+            try {
+                await api("/api/write", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ file: currentFile, content: text }),
+                });
+                flash("saved ✓");
+            } catch (e) { alert("Save failed: " + e.message); }
+        }
+
+        document.getElementById("saveBtn").onclick = save;
+        document.getElementById("addRootBtn").onclick = () => {
+            if (!root) root = parseMarkdown("# New map\n");
+            pushUndo();
+            const n = { title: "new", body: [], children: [], depth: 1 };
+            root.children.push(n);
+            render();
+            const ndiv = findDiv(root, n);
+            if (ndiv) {
+                clearSelection();
+                state.selectedNodes.add(n);
+                ndiv.classList.add("selected");
+                updateStatus();
+                startEdit(ndiv);
+            }
+        };
+
+        let flashTimer = null;
+
+        function flash(msg) {
+            const s = document.getElementById("status");
+            s.textContent = msg;
+            clearTimeout(flashTimer);
+            flashTimer = setTimeout(() => (s.textContent = ""), 1500);
+        }
+
+        /* ---------------- Init ---------------- */
+        initSelBox();
+
+        window.addEventListener("load", () => {
+            const params = new URLSearchParams(window.location.search);
+            const initialFile = params.get("file");
+            if (initialFile) {
+                openFile(initialFile);
+            } else {
+                showPicker();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+# New map
+
+- root
+	-kamien

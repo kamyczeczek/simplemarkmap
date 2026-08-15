@@ -1,0 +1,49 @@
+{
+  "name": "simplemarkmap",
+  "version": "1.0.0",
+  "description": "A local Markdown mind-map editor",
+  "main": "electron-main.js",
+  "author": "Mateusz",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis",
+    "pack": "electron-builder --dir"
+  },
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.simplemarkmap.app",
+    "productName": "SimpleMarkmap",
+    "asar": false,
+    "files": [
+      "electron-main.js",
+      "server.js",
+      "public/**/*",
+      "maps/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": ["nsis"],
+      "artifactName": "SimpleMarkmap-Setup-${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "perMachine": false,
+      "runAfterFinish": true
+    },
+    "fileAssociations": [
+      {
+        "ext": "md",
+        "name": "Markdown document",
+        "description": "Open Markdown files with SimpleMarkmap",
+        "role": "Editor"
+      }
+    ]
+  }
+}

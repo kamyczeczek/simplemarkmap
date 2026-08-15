@@ -1,0 +1,33 @@
+Windows Registry Editor Version 5.00
+
+; Add directly to the normal .md file context menu
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.md\shell\simplemarkmap]
+@="Open with simplemarkmap"
+"Icon"="C:\\Users\\Mateusz\\Desktop\\Root\\AGENT\\03_PROJECTS\\simplemarkmap\\public\\favicon.ico"
+
+; Set the command
+[HKEY_CLASSES_ROOT\SystemFileAssociations\.md\shell\simplemarkmap\command]
+@="wscript.exe \"C:\\Users\\Mateusz\\Desktop\\Root\\AGENT\\03_PROJECTS\\simplemarkmap\\launch.vbs\" \"%1\""
+
+; Also add to directory background context menu
+[HKEY_CLASSES_ROOT\Directory\shell\simplemarkmap]
+@="Open with simplemarkmap"
+"Icon"="C:\\Users\\Mateusz\\Desktop\\Root\\AGENT\\03_PROJECTS\\simplemarkmap\\public\\favicon.ico"
+
+[HKEY_CLASSES_ROOT\Directory\shell\simplemarkmap\command]
+@="cmd /c start /d \"C:\\Users\\Mateusz\\Desktop\\Root\\AGENT\\03_PROJECTS\\simplemarkmap\" \"\" \"run.bat\" --dir \"%1\""
+
+; Add to folder background context menu (when right-clicking inside a folder)
+[HKEY_CLASSES_ROOT\Directory\Background\shell\simplemarkmap]
+@="Open with simplemarkmap"
+"Icon"="C:\\Users\\Mateusz\\Desktop\\Root\\AGENT\\03_PROJECTS\\simplemarkmap\\public\\favicon.ico"
+
+[HKEY_CLASSES_ROOT\Directory\Background\shell\simplemarkmap\command]
+@="cmd /c start /d \"C:\\Users\\Mateusz\\Desktop\\Root\\AGENT\\03_PROJECTS\\simplemarkmap\" \"\" \"run.bat\" --dir \"%1\""
+; Fallback for the common Windows Markdown file ProgID
+[HKEY_CLASSES_ROOT\mdfile\shell\simplemarkmap]
+@="Open with simplemarkmap"
+"Icon"="C:\\Users\\Mateusz\\Desktop\\Root\\AGENT\\03_PROJECTS\\simplemarkmap\\public\\favicon.ico"
+
+[HKEY_CLASSES_ROOT\mdfile\shell\simplemarkmap\command]
+@="wscript.exe \"C:\\Users\\Mateusz\\Desktop\\Root\\AGENT\\03_PROJECTS\\simplemarkmap\\launch.vbs\" \"%1\""

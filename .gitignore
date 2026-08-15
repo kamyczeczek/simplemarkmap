@@ -1,0 +1,16 @@
+node_modules/
+dist/
+release/
+out/
+*.tmp
+*.log
+.env
+.vscode/
+.DS_Store
+Thumbs.db
+build-*/
+win-unpacked*/
+# runtime artifacts
+.simplemarkmap-server.pid
+*.err
+*.out
