@@ -30,6 +30,12 @@ zakończyła się błędem `spawn EPERM` podczas uruchamiania procesu pomocnicze
 
 Błąd `spawn EPERM` był problemem środowiska/procesu Windows, a nie błędem kodu aplikacji. Najczęstsze przyczyny to działający `SimpleMarkmap.exe`/`electron.exe`, blokada przez Defendera lub OneDrive, pozostały proces poprzedniego builda, zablokowany katalog wyjściowy albo problem z uprawnieniami.
 
+## Reorganizacja ICM
+
+Projekt ma routing w `AGENTS.md`, kod w `src/`, testy w `tests/`, dokumentację w `docs/`,
+skrypty w `scripts/` oraz osobne decyzje architektoniczne w `docs/decisions/`.
+Build i testy powinny być wykonywane przez `npm test` oraz `npm run build:safe`.
+
 ## Ostatni commit zmian
 
 ```text

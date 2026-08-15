@@ -1,6 +1,7 @@
 const { app, BrowserWindow, dialog, ipcMain } = require("electron");
 const path = require("path");
 const http = require("http");
+const APP_DIR = path.resolve(__dirname, "..");
 
 let mainWindow = null;
 let pendingFile = null;
@@ -13,13 +14,8 @@ function findFileArg(argv) {
 // of the launched .md file, or the default maps/ folder.
 pendingFile = findFileArg(process.argv);
 if (pendingFile) {
-  // Root the picker at the project directory (where server.js lives),
-  // not the file's parent. This allows browsing the entire project folder
-  // tree while keeping the "up" button functional.
-  const absoluteFile = path.resolve(pendingFile);
-  // Use the application directory (same as server.js) as the root,
-  // not the file's parent folder.
-  process.env.SIMPLEMARKMAP_ROOT = path.resolve(__dirname);
+  // Keep the server root stable; selected files are passed as absolute paths.
+  path.resolve(pendingFile);
 }
 
 // IPC handler for system file dialog. Returns a path relative to the markdown
@@ -68,7 +64,7 @@ ipcMain.handle("select-link-target", async () => {
 
 // Start the existing HTTP server in this process (Electron's bundled Node),
 // so we never need a standalone node.exe on the user's machine.
-const serverModule = require("./server");
+const serverModule = require(path.join(__dirname, "server"));
 
 server.on("error", (err) => {
   if (err && err.code === "EADDRINUSE") {

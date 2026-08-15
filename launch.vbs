@@ -17,11 +17,11 @@ End If
 ' Reuse the existing server when possible. Never kill another instance:
 ' each desktop window can safely open files using absolute paths.
 shell.CurrentDirectory = projectDir
-shell.Run "cmd.exe /c title simplemarkmap-server & node " & Q(fso.BuildPath(projectDir, "server.js")), 0, False
+shell.Run "cmd.exe /c title simplemarkmap-server & node " & Q(fso.BuildPath(projectDir, "src\server.js")), 0, False
 
 ' Use PATH when node.exe is not next to the project.
 If Not WaitForServer("http://127.0.0.1:8765/api/read?file=" & UrlEncode(fso.GetAbsolutePathName(fileArg)), 10000) Then
-  shell.Run "cmd.exe /c title simplemarkmap-server & node " & Q(fso.BuildPath(projectDir, "server.js")), 0, False
+  shell.Run "cmd.exe /c title simplemarkmap-server & node " & Q(fso.BuildPath(projectDir, "src\server.js")), 0, False
   If Not WaitForServer("http://127.0.0.1:8765/api/read?file=" & UrlEncode(fso.GetAbsolutePathName(fileArg)), 10000) Then
     MsgBox "Nie udało się uruchomić simplemarkmap.", 16, "simplemarkmap"
     WScript.Quit 1

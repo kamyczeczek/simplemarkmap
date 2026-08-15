@@ -29,11 +29,11 @@ function defaultRoot() {
   return path.resolve(__dirname);
 }
 
-const ROOT = path.resolve(resolveArgvRoot() || process.env.SIMPLEMARKMAP_ROOT || defaultRoot());
+const ROOT = path.resolve(resolveArgvRoot() || process.env.SIMPLEMARKMAP_ROOT || path.resolve(__dirname, "..", "maps"));
 const HOST = process.env.HOST || "127.0.0.1";                 // default loopback only
 const PORT = Number(process.env.PORT || 8765);
-const PUBLIC = path.join(__dirname, "public");
-const PID_FILE = path.join(__dirname, ".simplemarkmap-server.pid");
+const PUBLIC = path.join(__dirname, "..", "public");
+const PID_FILE = path.join(__dirname, "..", ".simplemarkmap-server.pid");
 
 // Safely create a directory: if a non-directory already occupies the path,
 // remove it first. This avoids ENOTDIR when server.js is required from inside

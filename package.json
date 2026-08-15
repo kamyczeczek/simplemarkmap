@@ -2,13 +2,16 @@
   "name": "simplemarkmap",
   "version": "1.0.0",
   "description": "A local Markdown mind-map editor",
-  "main": "electron-main.js",
+  "main": "src/electron-main.js",
   "author": "Mateusz",
   "license": "MIT",
   "scripts": {
     "start": "electron .",
+    "test": "node tests/test-relpath.js",
+    "test:e2e": "node tests/test-e2e.js",
     "dist": "electron-builder --win nsis",
-    "pack": "electron-builder --dir"
+    "pack": "electron-builder --dir",
+    "build:safe": "electron-builder --win nsis --config.directories.output=C:\\sm-build\\out"
   },
   "devDependencies": {
     "electron": "^35.0.0",
@@ -19,8 +22,7 @@
     "productName": "SimpleMarkmap",
     "asar": false,
     "files": [
-      "electron-main.js",
-      "server.js",
+      "src/**/*",
       "public/**/*",
       "maps/**/*",
       "package.json"

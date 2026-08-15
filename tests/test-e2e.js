@@ -20,8 +20,8 @@ async function sleep(ms) {
 async function run() {
   const port = await getFreePort();
   console.log(`Starting server on port ${port}...`);
-  const serverPath = path.join(__dirname, "server.js");
-  const mapsDir = path.join(__dirname, "maps");
+  const serverPath = path.join(__dirname, "..", "src", "server.js");
+  const mapsDir = path.join(__dirname, "..", "maps");
   const server = spawn("node", [serverPath, mapsDir], {
     env: { ...process.env, PORT: String(port) }
   });
