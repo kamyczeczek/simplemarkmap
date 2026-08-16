@@ -1,16 +1,17 @@
 # Project State: SimpleMarkmap
-- **Objective:** Maintain and enhance SimpleMarkmap (Electron markdown mindmap editor) with robust ICM monitoring, routing, and automated git workflow.
+- **Objective:** Maintain and enhance SimpleMarkmap (Electron markdown mindmap editor) with robust ICM monitoring, clean routing, test-first development loop, and automated commit/push workflow.
 - **Current Location:** `03_PROJECTS/simplemarkmap/MONITORING/`
-- **Current Stage:** Active maintenance & ICM routing optimization.
+- **Current Stage:** Active maintenance & ICM structural refinement.
 - **Completed Work:**
   - Fixed Electron main server startup (`ReferenceError: server is not defined`).
   - Fixed file link picker and backslash path parsing (`splitPath`).
   - Added test suite (`npm test`, `npm run test:link`, `npm run test:relpath`).
   - Built production package to `C:\sm-build\out\SimpleMarkmap-Setup-1.0.0.exe`.
-  - Introduced ICM monitoring structure (`MONITORING/`) and integrated it into `AGENTS.md` routing.
-  - Removed orphaned `abc.md` file and broken deep relative links.
-  - Enforced mandatory commit & push workflow rule in `AGENTS.md`.
+  - Introduced ICM monitoring structure (`MONITORING/`) and integrated it into `AGENTS.md`.
+  - Removed duplicate `maps/AGENTS.md` and orphaned `abc.md`.
+  - Refactored `AGENTS.md` into distinct `Identity`, `Routing`, `Commands`, and `Rules` sections (including test-first loop and mandatory commit/push rule).
+  - Reconciled `taskkill` policy between manual agent actions and automated `run.bat` script.
 - **In Progress:** None.
 - **Blockers & Decisions:** No blockers.
-- **Last Verified Checkpoint:** Build and tests successful (`npm test`, `npm run build:safe`).
+- **Last Verified Checkpoint:** Tests and build successful (`npm test`, `npm run build:safe`).
 - **Best Next Move:** Proceed with further feature development or bug fixes as requested.

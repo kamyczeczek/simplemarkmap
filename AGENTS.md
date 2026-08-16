@@ -1,34 +1,38 @@
-# SimpleMarkmap
-Electronowa aplikacja do edycji map Markdown.
+# SimpleMarkmap AGENTS.md
+
+## Identity
+You are an autonomous software engineering agent operating within the **SimpleMarkmap** project (an Electron desktop markdown mindmap editor). You rely on Interpretable Context Methodology (ICM) and Karpathy-style simplicity principles.
 
 ## Routing
-- stan bieżący i historia sesji (MONITORING): `MONITORING/` (ważne: przeczytaj `MONITORING/STATE.md` na początku)
-- bieżący stan i ostatnie buildy: `CONTEXT.md`
-- kod Electrona i serwera: `src/`
-- interfejs: `public/`
-- testy: `tests/`
-- skrypty rozruchowe w root: `run.bat`, `launch.vbs`
-- dokumentacja i decyzje: `docs/`
-- skill automatyzacji accessibility/DOM: `docs/ui-automation/`
-- dane przykładowe: `maps/`
+- **Current State & Session History:** `MONITORING/` *(mandatory start: read `MONITORING/STATE.md` first)*
+- **Project Context & Build Summary:** `CONTEXT.md`
+- **Electron & Server Code:** `src/`
+- **UI & Renderer:** `public/`
+- **Test Suite:** `tests/`
+- **Launcher Scripts (Root):** `run.bat`, `launch.vbs`
+- **Documentation & Decisions:** `docs/`
+- **UI Automation Skill:** `docs/ui-automation/`
+- **Sample Maps:** `maps/`
 
 ## Commands
-- `npm start` – uruchomienie aplikacji w trybie deweloperskim (Electron)
-- `npm test` – uruchomienie wszystkich testów jednostkowych i integracyjnych
-- `npm run test:link` – test funkcji “Link to file…”
-- `npm run build:safe` – bezpieczny build instalatora Windows do `C:\sm-build\out`
-- `npm run dist` – standardowy build (domyślny folder wyjściowy)
+- `npm start` – launch dev app (Electron)
+- `npm test` – run test suite (`tests/test-relpath.js`, etc.)
+- `npm run test:link` – test “Link to file…” feature
+- `npm run build:safe` – safe Windows installer build to `C:\sm-build\out`
+- `npm run dist` – standard builder script
 
-## Zasady przed zmianą
-1. **Zawsze przeczytaj `MONITORING/STATE.md`** przed podjęciem jakichkolwiek innych działań.
-2. **Myśl przed kodowaniem (Think Before Coding):** Nie zgaduj i jasno przedstawiaj swoje założenia. Jeśli polecenie ma wiele interpretacji lub jest niejasne, zatrzymaj się i poproś o doprecyzowanie. Jeśli istnieje prostsze podejście, poinformuj o nim i wskaż ewentualne kompromisy.
-3. **Prostota przede wszystkim (Simplicity First):** Pisz absolutne minimum kodu potrzebne do rozwiązania problemu. Nie dodawaj żadnych funkcji, dodatkowej elastyczności, ani abstrakcji dla jednorazowego kodu, o które użytkownik wyraźnie nie prosił. Jeśli napisałeś 200 linii, a można to zrobić w 50, przepisz to.
-4. **Chirurgiczne zmiany (Surgical Changes):** Modyfikuj tylko to, co jest absolutnie konieczne do wykonania zadania. Nie "poprawiaj" formatowania, komentarzy ani nie refaktoryzuj sąsiedniego kodu, jeśli nie jest to częścią błędu. Zawsze dostosowuj się do istniejącego stylu w pliku, nawet jeśli wolałbyś zrobić to inaczej. Usuwaj wyłącznie osierocony kod (np. nieużywane importy czy zmienne), który powstał w wyniku Twoich własnych zmian.
-5. **Działanie zorientowane na cel (Goal-Driven Execution):** Przekształcaj ogólne zadania w weryfikowalne cele. Na przykład: zamiast po prostu "naprawić błąd", najpierw napisz test, który go reprodukuje, a następnie spraw, by test przeszedł. Dla zadań wieloetapowych wypisz krótki plan i weryfikuj każdy krok z osobna.
-6. Przeczytaj `CONTEXT.md` i sprawdź `git status`.
-7. Nie edytuj `dist/` — to artefakt builda.
-8. Nie zabijaj procesów na porcie `8765` przez `taskkill`.
-9. Nie wpisuj ścieżek użytkownika na stałe.
-10. Aplikacja może otwierać pliki Markdown z dowolnych lokalizacji.
-11. Po zmianie uruchom `npm test`, build do `C:\sm-build\out`, a następnie wykonaj commit oraz push (`git add`, `git commit`, `git push`).
-12. Aktualizuj `CONTEXT.md` oraz `MONITORING/STATE.md` dopiero po zweryfikowanym wyniku.
+## Rules & Workflow
+1. **Initial Protocol:** Always read `MONITORING/STATE.md` before performing any other task or analysis.
+2. **Test-First Loop:** For bug fixes or feature work:
+   - Step 1: Write/update a test reproducing the issue and confirm it fails.
+   - Step 2: Implement the minimal fix and confirm the test passes.
+3. **Think Before Coding:** Clarify goals and state assumptions. Avoid over-engineering (Simplicity First).
+4. **Surgical Changes:** Edit only what is necessary. Match existing style. Remove orphaned code created by your changes.
+5. **Environment & Safety Constraints:**
+   - Do not edit `dist/` (build artifact).
+   - Manual agent processes must not use raw `taskkill` (note: automated deterministic startup scripts like `run.bat` may safely clean up port 8765 listeners).
+   - Do not hardcode user paths.
+   - Application supports opening Markdown files from any local absolute/relative path.
+6. **Completion & Handover:**
+   - After verification (`npm test` and build to `C:\sm-build\out`), update `CONTEXT.md` and `MONITORING/STATE.md`.
+   - **Mandatory Final Action:** Always execute `git add`, `git commit`, and `git push` before finishing work.
