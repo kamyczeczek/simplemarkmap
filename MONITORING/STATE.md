@@ -1,0 +1,14 @@
+# Project State: SimpleMarkmap
+- **Objective:** Maintain and enhance SimpleMarkmap (Electron markdown mindmap editor) with robust ICM monitoring and tooling.
+- **Current Location:** `03_PROJECTS/simplemarkmap/MONITORING/`
+- **Current Stage:** Active maintenance & ICM monitoring integration.
+- **Completed Work:**
+  - Fixed Electron main server startup (`ReferenceError: server is not defined`).
+  - Fixed file link picker and backslash path parsing (`splitPath`).
+  - Added test suite (`npm test`, `npm run test:link`, `npm run test:relpath`).
+  - Built production package to `C:\sm-build\out\SimpleMarkmap-Setup-1.0.0.exe`.
+  - Introduced ICM monitoring structure (`MONITORING/`).
+- **In Progress:** None.
+- **Blockers & Decisions:** No blockers.
+- **Last Verified Checkpoint:** Build successful (`npm run build:safe`, exit code 0).
+- **Best Next Move:** Review monitoring status or proceed with further enhancements/bugfixes as requested.
