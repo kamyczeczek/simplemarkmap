@@ -11,6 +11,7 @@
   - Removed duplicate `maps/AGENTS.md` and orphaned `abc.md`.
   - Refactored `AGENTS.md` into distinct `Identity`, `Routing`, `Commands`, and `Rules` sections (including test-first loop and mandatory commit/push rule).
   - Reconciled `taskkill` policy between manual agent actions and automated `run.bat` script.
+  - Recorded session log in `MONITORING/LOGBOOK/2026-08-17-14-30.md`.
 - **In Progress:** None.
 - **Blockers & Decisions:** No blockers.
 - **Last Verified Checkpoint:** Tests and build successful (`npm test`, `npm run build:safe`).
