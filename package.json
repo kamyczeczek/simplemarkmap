@@ -13,7 +13,8 @@
     "test:desktop": "node tests/test-electron-desktop.js",
     "dist": "electron-builder --win nsis",
     "pack": "electron-builder --dir",
-    "build:safe": "electron-builder --win nsis --config.directories.output=C:\\sm-build\\out"
+    "build:safe": "electron-builder --win nsis --config.directories.output=C:\\sm-build\\out",
+    "log:create": "node scripts\\log-create.js"
   },
   "devDependencies": {
     "electron": "^35.0.0",
