@@ -10,5 +10,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Opens the native OS file picker for linking. Resolves with the chosen file's
   // path relative to the current markdown root (root is NOT changed), or null.
   openLinkDialog: () => ipcRenderer.invoke("select-link-target"),
+
+  // Creates a new .md file via the native "Save" dialog. Resolves with the
+  // created file's absolute path, null if cancelled, or { error } on failure.
+  createFile: () => ipcRenderer.invoke("create-file"),
 });
 

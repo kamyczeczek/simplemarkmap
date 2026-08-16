@@ -92,3 +92,9 @@ Zbudowano do `C:\sm-build\out` (`npm run build:safe`, kod 0).
 ```text
 C:\sm-build\out\SimpleMarkmap-Setup-1.0.0.exe
 ```
+
+## Naprawa artefaktu / zombie elementu HTML picker oraz ukrywania menu po kliknięciu w puste miejsce
+
+- Element `#picker` został domyślnie oznaczony klasą `hidden` w `public/index.html`.
+- W funkcjach `openLinkPicker()`, `contextmenu` (kliknięcie poza węzeł) oraz w globalnym nasłuchiwaczu kliknięć dodano jawne wywołania `hidePicker()`, dzięki czemu stary picker HTML oraz opcje kontekstowe znikają natychmiast po kliknięciu w puste miejsce lub wybraniu pliku.
+- Zaktualizowano `AGENTS.md` o uniwersalne zasady asystenckie (Myśl przed kodowaniem, Prostota przede wszystkim, Chirurgiczne zmiany, Działanie zorientowane na cel).

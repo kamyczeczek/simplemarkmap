@@ -26,6 +26,9 @@
         * {
             box-sizing: border-box;
         }
+        .hidden {
+            display: none !important;
+        }
         html,
         body {
             margin: 0;
@@ -299,11 +302,12 @@
             box-shadow: 0 0 0 2px var(--accent-dim);
         }
         .mnode.root {
-            border-color: var(--accent-dim);
-            background: var(--accent);
-            color: #fff;
+            border-color: transparent;
+            background: transparent;
+            color: transparent;
             font-weight: 700;
             cursor: default;
+            box-shadow: none;
         }
         .mnode[contenteditable="true"] {
             outline: none;
@@ -415,12 +419,13 @@
         <button id="backBtn" class="ghost" disabled title="Go Back">←</button>
         <button id="forwardBtn" class="ghost" disabled title="Go Forward">→</button>
         <button id="openBtn" class="ghost">Open…</button>
+        <button id="newBtn" class="ghost" title="Create a new markdown map">+ New…</button>
         <button id="saveBtn" disabled>Save</button>
         <button id="addRootBtn" class="ghost">+ Root</button>
         <span id="status"></span>
     </div>
 
-    <div id="picker">
+    <div id="picker" class="hidden">
         <div id="pickerCard">
             <h2>Open a markdown note</h2>
             <div class="sub">Headings (<b>#</b>, <b>##</b>, …) become the mindmap tree.</div>
@@ -554,6 +559,16 @@ async function loadDir(dir) {
                 }
             } catch (err) {
                 alert("Cannot open file: " + (err && err.message ? err.message : err));
+            }
+        };
+        document.getElementById("newBtn").onclick = async () => {
+            try {
+                const result = await window.electronAPI.createFile();
+                if (!result) return;
+                if (result.error) { alert("Failed to create file: " + result.error); return; }
+                await openFile(result);
+            } catch (err) {
+                alert("Cannot create file: " + (err && err.message ? err.message : err));
             }
         };
         document.getElementById("cancelPick").onclick = () => hidePicker();
@@ -961,6 +976,8 @@ async function loadDir(dir) {
                         depth: (parent === root ? 1 : parent.depth + 1),
                         kind: "content"
                     };
+                    // A bare outline bullet ("-", "*", "+") becomes an empty node.
+                    if (/^\s*[-*+]\s*$/.test(line)) node.title = "";
                     parent.children.push(node);
                 }
             }
@@ -970,7 +987,15 @@ async function loadDir(dir) {
         function serializeTree(root) {
             const out = [];
             const pushNode = (n) => {
-                if (n === root || n.title == null || n.title === "") {
+                if (n === root) {
+                    for (const c of n.children) pushNode(c);
+                    return;
+                }
+                if (n.title == null || n.title === "") {
+                    // Empty node — persist as an outline bullet at its nesting level.
+                    const indent = "  ".repeat(Math.max(0, (n.depth || 1) - 1));
+                    out.push(indent + "-");
+                    for (const l of n.body) out.push(l);
                     for (const c of n.children) pushNode(c);
                     return;
                 }
@@ -1444,6 +1469,7 @@ async function loadDir(dir) {
             e.preventDefault();
             const nodeEl = e.target.closest && e.target.closest(".mnode");
             const ctxMenu = document.getElementById("ctxMenu");
+            hidePicker();
             if (!nodeEl || nodeEl.classList.contains("root")) {
                 ctxMenu.classList.add("hidden");
                 return;
@@ -1460,7 +1486,10 @@ async function loadDir(dir) {
         // Hide the context menu on any outside click.
         document.addEventListener("click", (e) => {
             const ctxMenu = document.getElementById("ctxMenu");
-            if (!ctxMenu.contains(e.target)) ctxMenu.classList.add("hidden");
+            if (!ctxMenu.contains(e.target)) {
+                ctxMenu.classList.add("hidden");
+                hidePicker();
+            }
         });
 
         document.getElementById("ctxLink").addEventListener("click", () => {
@@ -1766,25 +1795,18 @@ async function loadDir(dir) {
                 n.title = val;
                 if (n.kind === "content") n.raw = val;
             }
-            const isEmpty = !val;
-            if (isEmpty) {
-                removeNode(n);
-                render();
-                const neighbor = findNeighbor(n);
-                if (neighbor) selectNode(neighbor);
-                else clearSelection();
+            // Empty nodes are allowed and persist as outline bullets; never
+            // auto-delete a node just because its text was cleared.
+            render();
+            if (changed) {
+                const nd = findDiv(root, n);
+                if (nd) selectNode(n);
             } else {
-                render();
-                if (changed) {
+                if (state.selectedNodes.has(n)) {
                     const nd = findDiv(root, n);
-                    if (nd) selectNode(n);
-                } else {
-                    if (state.selectedNodes.has(n)) {
-                        const nd = findDiv(root, n);
-                        if (nd) {
-                            nd.classList.add("selected");
-                            nd.focus({ preventScroll: true });
-                        }
+                    if (nd) {
+                        nd.classList.add("selected");
+                        nd.focus({ preventScroll: true });
                     }
                 }
             }
@@ -1793,7 +1815,7 @@ async function loadDir(dir) {
             // This writes back to the original .md file, not only to the canvas.
             scheduleAutoSave();
             acHide();
-            return !isEmpty;
+            return true;
         }
 
         function startEdit(div, initialChar, isNew) {
@@ -2087,15 +2109,15 @@ async function loadDir(dir) {
             pushUndo();
             let newNode;
             if (asChild) {
-                newNode = { title: "new", body: [], children: [], depth: parent.depth + 1 };
+                newNode = { title: "", body: [], children: [], depth: parent.depth + 1 };
                 parent.children.push(newNode);
             } else {
                 const gp = findParent(root, parent);
                 if (!gp) {
-                    newNode = { title: "new", body: [], children: [], depth: 1 };
+                    newNode = { title: "", body: [], children: [], depth: 1 };
                     root.children.push(newNode);
                 } else {
-                    newNode = { title: "new", body: [], children: [], depth: parent.depth };
+                    newNode = { title: "", body: [], children: [], depth: parent.depth };
                     const idx = gp.children.indexOf(parent);
                     gp.children.splice(idx + 1, 0, newNode);
                 }
@@ -2106,8 +2128,8 @@ async function loadDir(dir) {
                 clearSelection();
                 state.selectedNodes.add(newNode);
                 ndiv.classList.add("selected");
+                ndiv.focus({ preventScroll: true });
                 updateStatus();
-                startEdit(ndiv, null, true);
             }
             scheduleAutoSave();
         }
@@ -2239,6 +2261,7 @@ async function loadDir(dir) {
             try {
                 const data = await api("/api/read?file=" + encodeURIComponent(path));
                 currentFile = data.path;
+                localStorage.setItem("smm.lastFile", currentFile);
                 root = parseMarkdown(data.content);
                 state.undoStack = [];
                 state.selectedNodes.clear();
@@ -2308,7 +2331,7 @@ async function loadDir(dir) {
         document.getElementById("addRootBtn").onclick = () => {
             if (!root) root = parseMarkdown("# New map\n");
             pushUndo();
-            const n = { title: "new", body: [], children: [], depth: 1 };
+            const n = { title: "", body: [], children: [], depth: 1 };
             root.children.push(n);
             render();
             const ndiv = findDiv(root, n);
@@ -2316,8 +2339,8 @@ async function loadDir(dir) {
                 clearSelection();
                 state.selectedNodes.add(n);
                 ndiv.classList.add("selected");
+                ndiv.focus({ preventScroll: true });
                 updateStatus();
-                startEdit(ndiv);
             }
         };
 
@@ -2336,8 +2359,17 @@ async function loadDir(dir) {
         window.addEventListener("load", () => {
             const params = new URLSearchParams(window.location.search);
             const initialFile = params.get("file");
+            const lastFile = localStorage.getItem("smm.lastFile");
             if (initialFile) {
                 openFile(initialFile);
+            } else if (lastFile) {
+                hidePicker();
+                // Plain launch: resume the last opened file directly.
+                openFile(lastFile, false).catch(() => {
+                    window.electronAPI.openSystemDialog().then((rel) => {
+                        if (rel) openFile(rel);
+                    }).catch(() => {});
+                });
             } else {
                 hidePicker();
                 // Everything goes through the native OS file picker.

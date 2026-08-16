@@ -76,6 +76,44 @@ ipcMain.handle("select-link-target", async () => {
   return absoluteFile;
 });
 
+// IPC handler: pick a directory where the user wants to create a new .md file.
+ipcMain.handle("select-directory", async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ["openDirectory", "createDirectory"],
+    buttonLabel: "Choose folder"
+  });
+  if (result.canceled || !result.filePaths.length) {
+    return null;
+  }
+  return path.resolve(result.filePaths[0]);
+});
+
+// IPC handler: create a new .md file. Opens the native "Save" dialog so the
+// user picks the folder and file name, then writes an empty map. Returns the
+// created file's absolute path or null if the user cancelled.
+ipcMain.handle("create-file", async () => {
+  const result = await dialog.showSaveDialog(mainWindow, {
+    title: "Create a new markdown map",
+    buttonLabel: "Create",
+    defaultPath: "new.md",
+    filters: [
+      { name: "Markdown documents", extensions: ["md"] }
+    ]
+  });
+  if (result.canceled || !result.filePath) {
+    return null;
+  }
+  const absoluteFile = path.resolve(result.filePath);
+  const name = path.basename(absoluteFile).replace(/\.md$/i, "") || "new";
+  const fs = require("fs");
+  try {
+    fs.writeFileSync(absoluteFile, "# " + name + "\n", "utf8");
+  } catch (err) {
+    return { error: err.message };
+  }
+  return absoluteFile;
+});
+
 // Start the existing HTTP server in this process (Electron's bundled Node),
 // so we never need a standalone node.exe on the user's machine.
 const serverModule = require(path.join(__dirname, "server"));
