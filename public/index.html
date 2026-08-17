@@ -2365,7 +2365,7 @@ async function loadDir(dir) {
             } else if (lastFile) {
                 hidePicker();
                 // Plain launch: resume the last opened file directly.
-                openFile(lastFile, false).catch(() => {
+                openFile(lastFile, true).catch(() => {
                     window.electronAPI.openSystemDialog().then((rel) => {
                         if (rel) openFile(rel);
                     }).catch(() => {});
