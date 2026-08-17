@@ -10,7 +10,7 @@
   },
   "scripts": {
     "start": "electron .",
-    "test": "node tests/test-relpath.js",
+    "test": "node tests/test-relpath.js && node tests/test-markdown-links.js",
     "test:e2e": "node tests/test-e2e.js",
     "test:link": "node tests/test-link-dialog.js",
     "test:desktop": "node tests/test-electron-desktop.js",
@@ -20,6 +20,8 @@
     "dist:mac": "electron-builder --mac zip",
     "dist:linux": "electron-builder --linux AppImage",
     "pack": "electron-builder --dir",
+    "build:fast": "electron-builder --win --dir --config.compression=store",
+    "build:installer": "electron-builder --win nsis",
     "build:safe": "node hooks/init.js && electron-builder --win nsis --config.directories.output=C:\\sm-build\\out",
     "build": "node hooks/init.js && electron-builder --win nsis",
     "log:create": "node scripts\\log-create.js",
@@ -44,7 +46,6 @@
     "files": [
       "src/**/*",
       "public/**/*",
-      "maps/**/*",
       "package.json"
     ],
     "win": {

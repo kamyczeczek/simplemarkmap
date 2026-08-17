@@ -715,25 +715,29 @@ async function loadDir(dir) {
 
         // Relative path from fromFile to toFile, both under the server root and
         // including the .md suffix. Inverse of navigateLink()'s resolution.
+        function pathRoot(p) {
+            const value = String(p).replace(/\\/g, "/");
+            const drive = value.match(/^([A-Za-z]):\//);
+            return drive ? drive[1].toLowerCase() + ":" : value.startsWith("/") ? "/" : "";
+        }
+
         function relPath(fromFile, toFile) {
-            const fromDir = dirnameOf(fromFile);
+            const from = normalizePath(fromFile);
             const to = normalizePath(toFile);
-
-            const fromParts = fromDir === '.' ? [] : fromDir.split('/');
-            const toParts = to.split('/');
-
+            if (pathRoot(from) !== pathRoot(to)) {
+                return to.match(/^[A-Za-z]:\//) ? `file:///${to}` : to;
+            }
+            const fromDir = dirnameOf(from);
+            const fromParts = fromDir === "." ? [] : fromDir.split("/");
+            const toParts = to.split("/");
             let common = 0;
             while (
                 common < fromParts.length &&
                 common < toParts.length - 1 &&
-                fromParts[common] === toParts[common]
-            ) {
-                common++;
-            }
-
-            const ups = Array(fromParts.length - common).fill('..');
-            const downs = toParts.slice(common);
-            return [...ups, ...downs].join('/');
+                fromParts[common].toLowerCase() === toParts[common].toLowerCase()
+            ) common++;
+            const ups = Array(fromParts.length - common).fill("..");
+            return [...ups, ...toParts.slice(common)].join("/");
         }
 
         /* ---------------- Caret insertion into contentEditable ---------------- */
@@ -1127,10 +1131,26 @@ async function loadDir(dir) {
 
         function renderMarkdownLinks(text) {
             if (!text) return "";
-            let escaped = escapeHtml(text);
-            return escaped.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (match, linkText, url) => {
-                return `<a href="${escapeHtml(url)}" class="md-link" data-link="${escapeHtml(url)}">${escapeHtml(linkText)}</a>`;
-            });
+            const source = String(text);
+            let html = "", cursor = 0;
+            while (cursor < source.length) {
+                const open = source.indexOf("[", cursor);
+                if (open < 0) { html += escapeHtml(source.slice(cursor)); break; }
+                const labelEnd = source.indexOf("](", open + 1);
+                if (labelEnd < 0) { html += escapeHtml(source.slice(cursor)); break; }
+                let depth = 1, close = labelEnd + 2;
+                for (; close < source.length && depth; close++) {
+                    if (source[close] === "(" && source[close - 1] !== "\\") depth++;
+                    else if (source[close] === ")" && source[close - 1] !== "\\") depth--;
+                }
+                if (depth !== 0) { html += escapeHtml(source.slice(cursor)); break; }
+                const label = source.slice(open + 1, labelEnd);
+                const url = source.slice(labelEnd + 2, close - 1).trim();
+                html += escapeHtml(source.slice(cursor, open));
+                html += `<a href="${escapeHtml(url)}" class="md-link" data-link="${escapeHtml(url)}">${escapeHtml(label)}</a>`;
+                cursor = close;
+            }
+            return html;
         }
 
         function render() {
@@ -1778,13 +1798,8 @@ async function loadDir(dir) {
                 this.dropMode = null;
                 this.nodes = [];
                 this.active = false;
-                this.dragging = false;
             }
         };
-
-        function onNodeMouseDown(e, div) {
-            dragState.mousedown(e, div);
-        }
 
         function isDescendantOf(ancestor, node) {
             const walk = (n) => {
@@ -1800,12 +1815,18 @@ async function loadDir(dir) {
         /* ---------------- Link navigation ---------------- */
         function navigateLink(url) {
             if (!url) return;
-            // Use the current file's directory (handles both "/" and "\" via
-            // splitPath/normalizePath). On Windows, currentFile may be an
-            // absolute path like "C:\Users\me\a.md" which has no "/", so the
-            // old substring trick left dir empty and broke relative links.
+            const value = String(url).trim();
+            if (/^https?:\/\//i.test(value)) {
+                window.electronAPI?.openExternal?.(value);
+                return;
+            }
+            if (/^file:\/\//i.test(value)) {
+                const filePath = decodeURIComponent(value.replace(/^file:\/\//i, ""));
+                openFile(filePath.replace(/^\/([A-Za-z]:)/, "$1"));
+                return;
+            }
             const currentDir = currentFile ? dirnameOf(currentFile) : ".";
-            let target = (currentDir === "." ? url : currentDir + "/" + url);
+            let target = currentDir === "." ? value : currentDir + "/" + value;
             target = normalizePath(target);
             if (!target.toLowerCase().endsWith(".md")) target += ".md";
             openFile(target);

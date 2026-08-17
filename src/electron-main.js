@@ -84,6 +84,13 @@ ipcMain.handle("open-in-default-editor", async (event, filePath) => {
   }
   return { success: true };
 });
+ipcMain.handle("open-external", async (event, url) => {
+  if (typeof url !== "string" || !/^https?:\/\//i.test(url)) {
+    throw new Error("Invalid external URL");
+  }
+  await shell.openExternal(url);
+  return { success: true };
+});
 
 // IPC handler for the "Link to file…" feature. Returns the chosen file's path
 // relative to the CURRENT markdown root (root is NOT changed), so it can be
