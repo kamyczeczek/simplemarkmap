@@ -49,11 +49,13 @@
             border-bottom: 1px solid var(--edge);
             position: relative;
             z-index: 5;
+            flex-wrap: nowrap;
         }
         #topbar .brand {
             font-weight: 700;
             letter-spacing: .3px;
-            margin-right: 4px;
+            margin-right: 8px;
+            flex-shrink: 0;
         }
         #crumbs {
             color: var(--muted);
@@ -61,6 +63,8 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+            max-width: 400px;
+            flex-shrink: 1;
         }
         #crumbs b {
             color: var(--text);
@@ -74,11 +78,13 @@
             font-size: 13px;
             cursor: pointer;
             font-weight: 600;
+            flex-shrink: 0;
         }
         #topbar button.ghost {
             background: transparent;
             border: 1px solid var(--edge);
             color: var(--text);
+            flex-shrink: 0;
         }
         #topbar button:hover {
             filter: brightness(1.1);
@@ -92,6 +98,7 @@
             margin-left: auto;
             font-size: 12px;
             color: var(--muted);
+            flex-shrink: 0;
         }
 
         #picker {
@@ -415,9 +422,9 @@
 
     <div id="topbar">
         <span class="brand">simplemarkmap</span>
-        <span id="crumbs">—</span>
         <button id="backBtn" class="ghost" disabled title="Go Back">←</button>
         <button id="forwardBtn" class="ghost" disabled title="Go Forward">→</button>
+        <span id="crumbs">—</span>
         <button id="openBtn" class="ghost">Open…</button>
         <button id="editExternalBtn" class="ghost" title="Otwórz w edytorze systemowym">✎ Edytuj</button>
         <button id="newBtn" class="ghost" title="Create a new markdown map">+ New…</button>
