@@ -962,7 +962,7 @@ async function loadDir(dir) {
 
 
         function parseMarkdown(text) {
-            const root = { title: null, body: [], children: [], depth: 0, kind: "root" };
+            const root = { title: null, body: [], children: [], depth: 0, kind: "root", source: null };
             const stack = [root];
             let current = root;
             const lines = text.split(/\r?\n/);
@@ -970,27 +970,51 @@ async function loadDir(dir) {
                 const heading = line.match(/^(#{1,6})\s+(.*?)\s*$/);
                 if (heading) {
                     const depth = heading[1].length;
-                    const node = { title: heading[2], body: [], children: [], depth, kind: "heading" };
+                    const node = { title: heading[2], body: [], children: [], depth, kind: "heading", source: "heading" };
                     while (stack.length > 1 && stack[stack.length - 1].depth >= depth) stack.pop();
                     const parent = stack[stack.length - 1];
                     parent.children.push(node);
                     stack.push(node);
                     current = node;
-                } else if (line.trim()) {
-                    // Markdown paragraphs, bullets, quotes and code lines are also
-                    // represented as map nodes instead of disappearing into body text.
-                    const parent = current || root;
-                    const node = {
-                        title: line.replace(/^\s*([-*+]\s+|>\s+)/, "").trim(),
-                        raw: line,
-                        body: [],
-                        children: [],
-                        depth: (parent === root ? 1 : parent.depth + 1),
-                        kind: "content"
-                    };
-                    // A bare outline bullet ("-", "*", "+") becomes an empty node.
-                    if (/^\s*[-*+]\s*$/.test(line)) node.title = "";
-                    parent.children.push(node);
+                } else {
+                    // Detect list items (single bullet) vs. grouped content lines.
+                    const listMatch = line.match(/^(\s*)([-*+])(?:\s+(.*))?$/);
+                    if (listMatch) {
+                        // A list item becomes its own structural node.
+                        const spaces = listMatch[1].length;
+                        const depth = Math.floor(spaces / 2) + 1;
+                        const node = {
+                            title: (listMatch[3] || "").trim(),
+                            raw: line,
+                            body: [],
+                            children: [],
+                            depth,
+                            kind: "heading",
+                            source: "list"
+                        };
+                        if (!node.title) node.title = "";
+                        while (stack.length > 1 && stack[stack.length - 1].depth >= depth) stack.pop();
+                        const parent = stack[stack.length - 1];
+                        parent.children.push(node);
+                        stack.push(node);
+                        current = node;
+                    } else if (line.trim()) {
+                        // Markdown paragraphs, quotes and code lines are also
+                        // represented as map nodes instead of disappearing into body text.
+                        const parent = current || root;
+                        const node = {
+                            title: line.replace(/^\s*([-*+]\s+|>\s+)/, "").trim(),
+                            raw: line,
+                            body: [],
+                            children: [],
+                            depth: (parent === root ? 1 : parent.depth + 1),
+                            kind: "content",
+                            source: null
+                        };
+                        // A bare outline bullet ("-", "*", "+") becomes an empty node.
+                        if (/^\s*[-*+]\s*$/.test(line)) node.title = "";
+                        parent.children.push(node);
+                    }
                 }
             }
             return root;
@@ -1006,15 +1030,19 @@ async function loadDir(dir) {
                 if (n.title == null || n.title === "") {
                     // Empty node — persist as an outline bullet at its nesting level.
                     const indent = "  ".repeat(Math.max(0, (n.depth || 1) - 1));
-                    out.push(indent + "-");
+                    out.push(indent + "- ");
                     for (const l of n.body) out.push(l);
                     for (const c of n.children) pushNode(c);
                     return;
                 }
-                if (n.kind === "content") {
+                if (n.source === "heading" || (n.kind === "heading" && n.source !== "list")) {
+                    out.push("#".repeat(Math.max(1, n.depth)) + " " + n.title);
+                } else if (n.kind === "content") {
                     out.push(n.raw != null ? n.raw : n.title);
                 } else {
-                    out.push("#".repeat(Math.max(1, n.depth)) + " " + n.title);
+                    // 'list' source (or new nodes default to list)
+                    const indent = "  ".repeat(Math.max(0, (n.depth || 1) - 1));
+                    out.push(indent + "- " + n.title);
                 }
                 for (const l of n.body) out.push(l);
                 for (const c of n.children) pushNode(c);
@@ -2122,15 +2150,15 @@ async function loadDir(dir) {
             pushUndo();
             let newNode;
             if (asChild) {
-                newNode = { title: "", body: [], children: [], depth: parent.depth + 1 };
+                newNode = { title: "", body: [], children: [], depth: parent.depth + 1, source: "list" };
                 parent.children.push(newNode);
             } else {
                 const gp = findParent(root, parent);
                 if (!gp) {
-                    newNode = { title: "", body: [], children: [], depth: 1 };
+                    newNode = { title: "", body: [], children: [], depth: 1, source: "list" };
                     root.children.push(newNode);
                 } else {
-                    newNode = { title: "", body: [], children: [], depth: parent.depth };
+                    newNode = { title: "", body: [], children: [], depth: parent.depth, source: "list" };
                     const idx = gp.children.indexOf(parent);
                     gp.children.splice(idx + 1, 0, newNode);
                 }
@@ -2344,7 +2372,7 @@ async function loadDir(dir) {
         document.getElementById("addRootBtn").onclick = () => {
             if (!root) root = parseMarkdown("# New map\n");
             pushUndo();
-            const n = { title: "", body: [], children: [], depth: 1 };
+            const n = { title: "", body: [], children: [], depth: 1, source: "list" };
             root.children.push(n);
             render();
             const ndiv = findDiv(root, n);
