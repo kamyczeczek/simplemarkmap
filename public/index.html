@@ -1969,6 +1969,7 @@ async function loadDir(dir) {
             } else if (e.key === "Delete" || e.key === "Backspace") {
                 if (div.classList.contains("selected") && !div.querySelector(".title").isContentEditable) {
                     e.preventDefault();
+                    e.stopPropagation(); // <-- ZASTRZEŻ: zapobiega podwójnemu usuwaniu przez globalny handler
                     deleteSelectedNodes();
                 }
             } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
