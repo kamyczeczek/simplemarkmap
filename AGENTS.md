@@ -33,6 +33,8 @@ You are an autonomous software engineering agent operating within the **SimpleMa
    - Manual agent processes must not use raw `taskkill` (note: automated deterministic startup scripts like `run.bat` may safely clean up port 8765 listeners).
    - Do not hardcode user paths.
    - Application supports opening Markdown files from any local absolute/relative path.
+   - **Architectural Invariants:** This project does not use a database, does not use external APIs (beyond OmniRoute gateway), and does not use CSS frameworks. These constraints prune the agent's reasoning space.
 6. **Completion & Handover:**
    - After verification (`npm test` and build to `C:\sm-build\out`), update `CONTEXT.md` and `MONITORING/STATE.md`.
    - **Mandatory Final Action:** Always execute `git add`, `git commit`, and `git push` before finishing work.
+   - **Clean-Pass Explicit Definitions:** If a verification run (tests, build) finds no errors, the LOGBOOK entry must explicitly state "PASS — 0 issues" to prevent hallucinating improvements.

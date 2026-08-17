@@ -1,7 +1,7 @@
 # Project State: SimpleMarkmap
-- **Objective:** Maintain and enhance SimpleMarkmap (Electron markdown mindmap editor) with robust ICM monitoring, clean routing, test-first development loop, and automated commit/push workflow.
+- **Objective:** Maintain and enhance SimpleMarkmap (Electron markdown mindmap editor) with robust ICM monitoring, clean routing, test-first development loop, and automated commit/push workflow. Now incorporating Harness Engineering constraints.
 - **Current Location:** `03_PROJECTS/simplemarkmap/MONITORING/`
-- **Current Stage:** Active maintenance & ICM structural refinement.
+- **Current Stage:** Harness Engineering incorporation & structural enforcement
 - **Completed Work:**
   - Fixed Electron main server startup (`ReferenceError: server is not defined`).
   - Fixed file link picker and backslash path parsing (`splitPath`).
@@ -12,7 +12,8 @@
   - Refactored `AGENTS.md` into distinct `Identity`, `Routing`, `Commands`, and `Rules` sections (including test-first loop and mandatory commit/push rule).
   - Reconciled `taskkill` policy between manual agent actions and automated `run.bat` script.
   - Recorded session log in `MONITORING/LOGBOOK/2026-08-17-14-30.md`.
+  - **Incorporated Harness Engineering principles:** Added Constraints layer (hooks system), Exclusionary Invariants, Rule Hierarchy flattening resolution, and Clean-Pass explicit definitions.
 - **In Progress:** None.
 - **Blockers & Decisions:** No blockers.
-- **Last Verified Checkpoint:** Tests and build successful (`npm test`, `npm run build:safe`).
-- **Best Next Move:** Proceed with further feature development or bug fixes as requested.
+- **Last Verified Checkpoint:** Tests and build successful (`npm test`, `npm run build:safe`). Harness principles incorporated.
+- **Best Next Move:** Proceed with feature development following Harness-constrained workflow. Future agents should read `hooks/init.js` for programmatic constraint enforcement.
