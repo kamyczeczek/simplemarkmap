@@ -966,8 +966,16 @@ async function loadDir(dir) {
             const stack = [root];
             let current = root;
             const lines = text.split(/\r?\n/);
+            // Expand a leading tab-indent into 2 spaces each, so mixed
+            // tabs/spaces produce a consistent hierarchy (issue #2).
+            const expandIndent = (raw) => String(raw || "").replace(/\t/g, "  ");
+
             for (const line of lines) {
-                const heading = line.match(/^(#{1,6})\s+(.*?)\s*$/);
+                // (4) Headings beyond H6 ("####### ...") must not break the tree.
+                const overDeep = line.match(/^(#{7,})[ \t]+/);
+                // Normal heading: tolerate missing space ("##new") and clamp to H6.
+                const heading = overDeep ? null : line.match(/^(#{1,6})[ \t]*(.*?)\s*$/);
+
                 if (heading) {
                     const depth = heading[1].length;
                     const node = { title: heading[2], body: [], children: [], depth, kind: "heading", source: "heading" };
@@ -977,14 +985,14 @@ async function loadDir(dir) {
                     stack.push(node);
                     current = node;
                 } else {
-                    // Detect list items (single bullet) vs. grouped content lines.
-                    const listMatch = line.match(/^(\s*)([-*+])(?:\s+(.*))?$/);
+                    // Detect list items. Marker may be glued to text ("-kamien")
+                    // or indented with tabs; both become proper list nodes.
+                    const listMatch = line.match(/^([ \t]*)([-*+])([ \t]*)(.*)$/);
                     if (listMatch) {
-                        // A list item becomes its own structural node.
-                        const spaces = listMatch[1].length;
+                        const spaces = expandIndent(listMatch[1]).length;
                         const depth = Math.floor(spaces / 2) + 1;
                         const node = {
-                            title: (listMatch[3] || "").trim(),
+                            title: (listMatch[3] + listMatch[4] || "").trim(),
                             raw: line,
                             body: [],
                             children: [],
@@ -1036,11 +1044,15 @@ async function loadDir(dir) {
                     return;
                 }
                 if (n.source === "heading" || (n.kind === "heading" && n.source !== "list")) {
-                    out.push("#".repeat(Math.max(1, n.depth)) + " " + n.title);
+                    // Clamp heading depth to the Markdown/HTML H1–H6 range (issue #4).
+                    const depth = Math.min(6, Math.max(1, n.depth));
+                    out.push("#".repeat(depth) + " " + n.title);
                 } else if (n.kind === "content") {
-                    out.push(n.raw != null ? n.raw : n.title);
+                    // Normalize a content line that silently began with a stray
+                    // "#" or an unspaced "-"/"*"/"+" so Typora renders it (issue #1,#4).
+                    out.push((n.raw != null ? n.raw : n.title));
                 } else {
-                    // 'list' source (or new nodes default to list)
+                    // 'list' source (or new nodes default to list): always "- " (with space).
                     const indent = "  ".repeat(Math.max(0, (n.depth || 1) - 1));
                     out.push(indent + "- " + n.title);
                 }
