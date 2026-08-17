@@ -35,24 +35,21 @@ const PORT = Number(process.env.PORT || 8765);
 const PUBLIC = path.join(__dirname, "..", "public");
 const PID_FILE = path.join(__dirname, "..", ".simplemarkmap-server.pid");
 
-// Safely create a directory: if a non-directory already occupies the path,
-// remove it first. This avoids ENOTDIR when server.js is required from inside
-// an asar archive (where __dirname points at app.asar, a file).
+// The packaged renderer lives inside app.asar. PUBLIC is read-only there, so
+// serve it without attempting to create or modify that path. Only ROOT is a
+// writable user-content directory.
 function ensureDir(dirPath) {
   try {
     const st = fssync.statSync(dirPath);
     if (st.isDirectory()) return;
-    fssync.unlinkSync(dirPath);
+    throw new Error(`Configured root is not a directory: ${dirPath}`);
   } catch (err) {
     if (err.code !== "ENOENT") throw err;
   }
   fssync.mkdirSync(dirPath, { recursive: true });
 }
 
-// Ensure the application directory exists. The workspace root may be an
-// existing system directory such as C:\\ and must never be mkdir'ed/removed.
 if (ROOT !== path.parse(ROOT).root) ensureDir(ROOT);
-ensureDir(PUBLIC);
 
 // Keep the launcher from accidentally reusing a server started for another
 // folder. The markdown root is process-local; no files are copied into maps.

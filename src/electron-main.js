@@ -177,10 +177,12 @@ ipcMain.handle("create-file", async () => {
   }
 });
 
-// Start the existing HTTP server in this process (Electron's bundled Node),
-// so we never need a standalone node.exe on the user's machine.
+// User Markdown must never be created below Program Files/app.asar.
+// Keep application assets read-only and put the default workspace in AppData.
+if (!process.env.SIMPLEMARKMAP_ROOT) {
+  process.env.SIMPLEMARKMAP_ROOT = path.join(app.getPath("userData"), "maps");
+}
 const serverModule = require(path.join(__dirname, "server"));
-
 const server = serverModule.createServer();
 server.on("error", (err) => {
   if (err && err.code === "EADDRINUSE") {
