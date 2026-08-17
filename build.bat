@@ -11,6 +11,9 @@ rem Target output directory for NSIS installer
 set "OUTPUT_DIR=C:\sm-build\out"
 set "INSTALLER_NAME=SimpleMarkmap-Setup-1.0.0.exe"
 
+rem ---- Always run from the project root ----
+cd /d "%PROJECT_DIR%"
+
 rem ---- Step 1: Verify Node.js is available ----
 echo.
 echo ==========================================================================
@@ -33,7 +36,7 @@ echo.
 rem ---- Step 2: Run constraint/hook verification (Harness Engineering) ----
 echo.
 echo [1/2] Running constraint enforcement check...
-node hooks\init.js
+node "%PROJECT_DIR%\hooks\init.js"
 if errorlevel 1 (
   echo.
   echo BUILD ABORTED: Constraint check failed.
