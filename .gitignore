@@ -1,23 +1,34 @@
+```
+# Dependencies
 node_modules/
-dist/
-release/
-out/
-*.tmp
-*.log
+
+# Environment
 .env
+.env.local
+*.env.*
+
+# Logs
+*.log
+
+# Editor/IDE
 .vscode/
-.DS_Store
-Thumbs.db
-build-*/
-win-unpacked*/
-# runtime artifacts
-.simplemarkmap-server.pid
-*.err
-*.out
+.idea/
+*.swp
+*.swo
+*.tmp
 
-installer-out/
+# Build artifacts
+dist/
+build/
+*.js.map
 
-build-out/
-
-# Personal/ignored
-Users/
+# Python (if applicable)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+.venv/
+.env/
+```
