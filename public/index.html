@@ -2022,7 +2022,19 @@ async function loadDir(dir) {
                 if (div.classList.contains("selected") && !div.querySelector(".title").isContentEditable) {
                     e.preventDefault();
                     e.stopPropagation(); // <-- ZASTRZEŻ: zapobiega podwójnemu usuwaniu przez globalny handler
-                    deleteSelectedNodes();
+                    if (e.key === "Backspace") {
+                        // Backspace: enter edit mode and remove the node's LAST character,
+                        // instead of deleting the whole node.
+                        startEdit(div);
+                        const t = div.querySelector(".title");
+                        if (t) {
+                            t.textContent = (n.title || "").slice(0, -1);
+                            placeCaretAtEnd(t);
+                        }
+                    } else {
+                        // Delete keeps deleting the entire node.
+                        deleteSelectedNodes();
+                    }
                 }
             } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
                 e.preventDefault();
