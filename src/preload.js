@@ -16,6 +16,6 @@ contextBridge.exposeInMainWorld("electronAPI", {
   createFile: () => ipcRenderer.invoke("create-file"),
 
   // Dodaj tę linię:
-  OpenInDefaultEditor: (path) => ipcRenderer.invoke("open-in-default-editor", path) [5]
+  openInDefaultEditor: (path) => ipcRenderer.invoke("open-in-default-editor", path)
 });
 

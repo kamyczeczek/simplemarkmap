@@ -58,9 +58,9 @@ return absoluteFile;
 ipcMain.handle("open-in-default-editor", async (event, filePath) => {
  if (filePath) {
  // shell.openPath otwiera plik przy użyciu domyślnego skojarzenia w systemie [3]
- Return await shell.openPath(filePath);
+ return await shell.openPath(filePath);
  }
- Return { error: "No file path provided" };
+ return { error: "No file path provided" };
 });
 
 // IPC handler for the "Link to file…" feature. Returns the chosen file's path
