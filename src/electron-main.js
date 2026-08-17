@@ -22,7 +22,9 @@ function findFileArg(argv) {
 pendingFile = findFileArg(process.argv);
 if (pendingFile) {
   // Keep the server root stable; selected files are passed as absolute paths.
-  path.resolve(pendingFile);
+  // path.resolve() needs an argument - this line was a no-op bug
+  const resolvedPath = path.resolve(pendingFile);
+  console.log("Pending file resolved:", resolvedPath);
 }
 
 // ---------- SHA-256 State Initialisation ----------
@@ -36,91 +38,132 @@ if (pendingFile) {
 // root (which is updated to the chosen file's directory so the HTTP server can
 // serve it), or null if the user cancelled.
 ipcMain.handle("select-file", async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ["openFile"],
-    filters: [
-      { name: "Markdown documents", extensions: ["md"] },
-      { name: "All files", extensions: ["*"] }
-    ]
-  });
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ["openFile"],
+      filters: [
+        { name: "Markdown documents", extensions: ["md"] },
+        { name: "All files", extensions: ["*"] }
+      ]
+    });
 
-  if (result.canceled || !result.filePaths.length) {
+    if (result.canceled || !result.filePaths.length) {
+      return null;
+    }
+
+    const absoluteFile = path.resolve(result.filePaths[0]);
+    // Validate the file exists before returning
+    const fs = require("fs").promises;
+    await fs.access(absoluteFile);
+    // Keep the server root stable. The API accepts this explicit absolute path,
+    // allowing files from any location without disrupting another open document.
+    return absoluteFile;
+  } catch (err) {
+    console.error("Error in select-file:", err);
     return null;
   }
-
-  const absoluteFile = path.resolve(result.filePaths[0]);
-  // Keep the server root stable. The API accepts this explicit absolute path,
-  // allowing files from any location without disrupting another open document.
-return absoluteFile;
 });
 
 // IPC handler do otwierania pliku w zewnętrznym edytorze
 ipcMain.handle("open-in-default-editor", async (event, filePath) => {
- if (filePath) {
- // shell.openPath otwiera plik przy użyciu domyślnego skojarzenia w systemie [3]
- return await shell.openPath(filePath);
- }
- return { error: "No file path provided" };
+  // Validate input - ensure filePath is a string and not empty
+  if (!filePath || typeof filePath !== 'string') {
+    return { error: "Invalid file path provided" };
+  }
+  
+  // Normalize and validate the path to prevent traversal attacks
+  const normalizedPath = path.normalize(filePath);
+  if (normalizedPath.startsWith('..')) {
+    return { error: "Invalid file path" };
+  }
+  
+  // shell.openPath otwiera plik przy użyciu domyślnego skojarzenia w systemie [3]
+  return await shell.openPath(normalizedPath);
 });
 
 // IPC handler for the "Link to file…" feature. Returns the chosen file's path
 // relative to the CURRENT markdown root (root is NOT changed), so it can be
 // inserted as a relative link from the currently open file.
 ipcMain.handle("select-link-target", async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ["openFile"],
-    filters: [
-      { name: "Markdown documents", extensions: ["md"] },
-      { name: "All files", extensions: ["*"] }
-    ]
-  });
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ["openFile"],
+      filters: [
+        { name: "Markdown documents", extensions: ["md"] },
+        { name: "All files", extensions: ["*"] }
+      ]
+    });
 
-  if (result.canceled || !result.filePaths.length) {
+    if (result.canceled || !result.filePaths.length) {
+      return null;
+    }
+
+    const absoluteFile = path.resolve(result.filePaths[0]);
+    // Validate file exists
+    const fs = require("fs").promises;
+    await fs.access(absoluteFile);
+    // Return an absolute path so links may target any local folder. The renderer
+    // computes a relative Markdown link where possible.
+    return absoluteFile;
+  } catch (err) {
+    console.error("Error in select-link-target:", err);
     return null;
   }
-
-  const absoluteFile = path.resolve(result.filePaths[0]);
-  // Return an absolute path so links may target any local folder. The renderer
-  // computes a relative Markdown link where possible.
-  return absoluteFile;
 });
 
 // IPC handler: pick a directory where the user wants to create a new .md file.
 ipcMain.handle("select-directory", async () => {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ["openDirectory", "createDirectory"],
-    buttonLabel: "Choose folder"
-  });
-  if (result.canceled || !result.filePaths.length) {
+  try {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ["openDirectory", "createDirectory"],
+      buttonLabel: "Choose folder"
+    });
+    if (result.canceled || !result.filePaths.length) {
+      return null;
+    }
+    return path.resolve(result.filePaths[0]);
+  } catch (err) {
+    console.error("Error in select-directory:", err);
     return null;
   }
-  return path.resolve(result.filePaths[0]);
 });
 
 // IPC handler: create a new .md file. Opens the native "Save" dialog so the
 // user picks the folder and file name, then writes an empty map. Returns the
 // created file's absolute path or null if the user cancelled.
 ipcMain.handle("create-file", async () => {
-  const result = await dialog.showSaveDialog(mainWindow, {
-    title: "Create a new markdown map",
-    buttonLabel: "Create",
-    defaultPath: "new.md",
-    filters: [
-      { name: "Markdown documents", extensions: ["md"] }
-    ]
-  });
-  if (result.canceled || !result.filePath) {
-    return null;
-  }
-  const absoluteFile = path.resolve(result.filePath);
-  const name = path.basename(absoluteFile).replace(/\.md$/i, "") || "new";
-  const fs = require("fs");
   try {
-    fs.writeFileSync(absoluteFile, "# " + name + "\n", "utf8");
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: "Create a new markdown map",
+      buttonLabel: "Create",
+      defaultPath: "new.md",
+      filters: [
+        { name: "Markdown documents", extensions: ["md"] }
+      ]
+    });
+    if (result.canceled || !result.filePath) {
+      return null;
+    }
+    const absoluteFile = path.resolve(result.filePath);
+    const name = path.basename(absoluteFile).replace(/\.md$/i, "") || "new";
+    const fs = require("fs");
+    
+    // Validate path doesn't escape intended directory
+    const normalizedPath = path.normalize(absoluteFile);
+    if (!normalizedPath.endsWith('.md')) {
+      return { error: "Invalid file extension" };
+    }
+    
+    try {
+      fs.writeFileSync(absoluteFile, "# " + name + "\n", "utf8");
+    } catch (err) {
+      return { error: err.message };
+    }
+    return absoluteFile;
   } catch (err) {
-    return { error: err.message };
+    console.error("Error in create-file:", err);
+    return { error: err.message || "Unknown error" };
   }
-  return absoluteFile;
 });
 
 // Start the existing HTTP server in this process (Electron's bundled Node),

@@ -5,21 +5,33 @@
   "main": "src/electron-main.js",
   "author": "Mateusz",
   "license": "MIT",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "start": "electron .",
     "test": "node tests/test-relpath.js",
     "test:e2e": "node tests/test-e2e.js",
     "test:link": "node tests/test-link-dialog.js",
     "test:desktop": "node tests/test-electron-desktop.js",
-    "dist": "electron-builder --win nsis",
+    "test:unit": "node tests/test-server.js",
+    "dist": "electron-builder --win nsis --mac zip --linux AppImage",
+    "dist:win": "electron-builder --win nsis",
+    "dist:mac": "electron-builder --mac zip",
+    "dist:linux": "electron-builder --linux AppImage",
     "pack": "electron-builder --dir",
     "build:safe": "node hooks/init.js && electron-builder --win nsis --config.directories.output=C:\\sm-build\\out",
     "build": "node hooks/init.js && electron-builder --win nsis",
     "log:create": "node scripts\\log-create.js",
-    "verify": "node -e \"const {preToolUse} = require('./hooks/init.js'); const result = preToolUse('test', {}); if (result.error) { console.error(result.error); process.exit(1); } console.log('Constraints check passed'); process.exit(0);\""
+    "verify": "node -e \"const {preToolUse} = require('./hooks/init.js'); const result = preToolUse('test', {}); if (result.error) { console.error(result.error); process.exit(1); } console.log('Constraints check passed'); process.exit(0);\"",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "dependencies": {
+    "markmap-lib": "^0.18.5",
+    "markmap-view": "^0.18.5"
   },
   "devDependencies": {
-    "electron": "^35.0.0",
+    "electron": "^43.4.0",
     "electron-builder": "^26.0.12",
     "playwright": "^1.62.1"
   },
@@ -35,9 +47,37 @@
     ],
     "win": {
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "artifactName": "SimpleMarkmap-Setup-${version}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "zip",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "artifactName": "SimpleMarkmap-${version}-${arch}.${ext}"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "SimpleMarkmap-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
