@@ -1192,7 +1192,7 @@ async function loadDir(dir) {
                         handleNodeClick(e, div); };
                     div.onkeydown = (e) => onNodeKey(e, div);
                     div.tabIndex = 0;
-                    div.addEventListener("mousedown", (e) => onNodeMouseDown(e, div));
+                    div.addEventListener("mousedown", (e) => dragState.mousedown(e, div));
                 }
                 divMap.set(n, div);
                 grid.appendChild(div);

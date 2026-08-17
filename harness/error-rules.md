@@ -17,6 +17,7 @@
 | 2026-08-17 | First opened map could not be reached via Back (empty history stack) | `openFile(lastFile, false)` suppressed push to history on load | Initial map must be pushed with `pushToHistory=true` so Back works from position 0 | Unit/e2e test asserting back-navigation from cold start |
 | 2026-08-17 | Markdown bullets broke in Typora (`-` without space, or H7 `#######`) | Serializer emitted invalid Markdown (no space after marker, headings beyond H6) | Lists always serialize as `- `; headings clamp to `Math.min(6, depth)` | Parser/serializer round-trip test in `tests/` |
 
+| 2026-08-18 | `onNodeMouseDown` was referenced from node `mousedown` listeners → `ReferenceError` prevented drag start | The handler was implemented as `dragState.mousedown`, but the renderer called a nonexistent global function | Node drag listeners must call `dragState.mousedown(e, div)` and remain covered by the harness evaluator | Harness evaluator re-read / constraint verification |
 ## How to add a rule
 1. When verify fails or the human points out a repeated mistake, open this file.
 2. Add one row capturing Error / Root cause / Rule / Enforce via.

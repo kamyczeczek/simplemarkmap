@@ -10,7 +10,7 @@ Lekka aplikacja desktopowa w Electronie do edycji plików Markdown z wizualizacj
 - Most preload: `src/preload.js`
 
 ## Aktualny stan
-Stabilny; poprawnie buduje instalator Windows do `C:\sm-build\out` za pomocą `npm run build:safe`.
+Stabilny; naprawiono start przeciągania poddrzew przez podłączenie `mousedown` do `dragState.mousedown`; `npm run harness` kończy się `PASS — 0 issues`.
 
 ## Ważne reguły i ograniczenia
 - Aplikacja może otwierać pliki Markdown z dowolnych lokalizacji.

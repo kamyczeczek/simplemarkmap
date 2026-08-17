@@ -15,6 +15,6 @@
   - **Incorporated Harness Engineering principles:** Added Constraints layer (hooks system), Exclusionary Invariants, Rule Hierarchy flattening resolution, and Clean-Pass explicit definitions.
   - **Added self-verification Harness:** `harness/HARNESS.md` (Goal-Driven Execution, Verification Loop, Generator/Evaluator split, One-Error-One-Rule, Background Loops), `harness/verify.js` executable loop (`npm run harness`), and `harness/error-rules.md` append-only registry seeded with resolved project errors.
 - **In Progress:** None.
-- **Blockers & Decisions:** No blockers.
-- **Last Verified Checkpoint:** Tests and build successful (`npm test`, `npm run build:safe`). Harness self-verification concept added.
-- **Best Next Move:** Run `npm run harness` to confirm PASS before further feature work. Future agents must self-verify via the harness and honor One-Error-One-Rule appendix.
+- **Blockers & Decisions:** Fixed subtree drag start by wiring node mousedown to `dragState.mousedown`; cycle prevention, `setSubtreeDepth`, and `scheduleAutoSave` remain in the existing drop path.
+- **Last Verified Checkpoint:** `npm run harness` PASS — 0 issues (constraints passed; 18 tests passed).
+- **Best Next Move:** Continue normal feature work; preserve the drag handler wiring rule in `harness/error-rules.md`.
