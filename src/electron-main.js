@@ -68,17 +68,21 @@ ipcMain.handle("select-file", async () => {
 ipcMain.handle("open-in-default-editor", async (event, filePath) => {
   // Validate input - ensure filePath is a string and not empty
   if (!filePath || typeof filePath !== 'string') {
-    return { error: "Invalid file path provided" };
+    throw new Error("Invalid file path provided");
   }
   
   // Normalize and validate the path to prevent traversal attacks
   const normalizedPath = path.normalize(filePath);
   if (normalizedPath.startsWith('..')) {
-    return { error: "Invalid file path" };
+    throw new Error("Invalid file path");
   }
   
-  // shell.openPath otwiera plik przy użyciu domyślnego skojarzenia w systemie [3]
-  return await shell.openPath(normalizedPath);
+  // shell.openPath zwraca pusty string przy sukcesie, lub komunikat błędu
+  const result = await shell.openPath(normalizedPath);
+  if (result) {
+    throw new Error(result);
+  }
+  return { success: true };
 });
 
 // IPC handler for the "Link to file…" feature. Returns the chosen file's path

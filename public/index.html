@@ -576,7 +576,10 @@ async function loadDir(dir) {
         document.getElementById("editExternalBtn").onclick = async () => {
             if (currentFile) {
                 try {
-                    await window.electronAPI.openInDefaultEditor(currentFile);
+                    const result = await window.electronAPI.openInDefaultEditor(currentFile);
+                    if (result && result.success) {
+                        flash("Otwarto w edytorze");
+                    }
                 } catch (err) {
                     alert("Błąd podczas otwierania pliku: " + err.message);
                 }
