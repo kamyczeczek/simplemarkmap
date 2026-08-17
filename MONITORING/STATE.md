@@ -1,7 +1,7 @@
 # Project State: SimpleMarkmap
-- **Objective:** Maintain and enhance SimpleMarkmap (Electron markdown mindmap editor) with robust ICM monitoring, clean routing, test-first development loop, and automated commit/push workflow. Now incorporating Harness Engineering constraints.
+- **Objective:** Maintain and enhance SimpleMarkmap (Electron markdown mindmap editor) with robust ICM monitoring, clean routing, test-first development loop, automated commit/push workflow, and a self-verifying Harness framework.
 - **Current Location:** `03_PROJECTS/simplemarkmap/MONITORING/`
-- **Current Stage:** Harness Engineering incorporation & structural enforcement
+- **Current Stage:** Harness Engineering self-verification active
 - **Completed Work:**
   - Fixed Electron main server startup (`ReferenceError: server is not defined`).
   - Fixed file link picker and backslash path parsing (`splitPath`).
@@ -13,7 +13,8 @@
   - Reconciled `taskkill` policy between manual agent actions and automated `run.bat` script.
   - Recorded session log in `MONITORING/LOGBOOK/2026-08-17-14-30.md`.
   - **Incorporated Harness Engineering principles:** Added Constraints layer (hooks system), Exclusionary Invariants, Rule Hierarchy flattening resolution, and Clean-Pass explicit definitions.
+  - **Added self-verification Harness:** `harness/HARNESS.md` (Goal-Driven Execution, Verification Loop, Generator/Evaluator split, One-Error-One-Rule, Background Loops), `harness/verify.js` executable loop (`npm run harness`), and `harness/error-rules.md` append-only registry seeded with resolved project errors.
 - **In Progress:** None.
 - **Blockers & Decisions:** No blockers.
-- **Last Verified Checkpoint:** Tests and build successful (`npm test`, `npm run build:safe`). Harness principles incorporated.
-- **Best Next Move:** Proceed with feature development following Harness-constrained workflow. Future agents should read `hooks/init.js` for programmatic constraint enforcement.
+- **Last Verified Checkpoint:** Tests and build successful (`npm test`, `npm run build:safe`). Harness self-verification concept added.
+- **Best Next Move:** Run `npm run harness` to confirm PASS before further feature work. Future agents must self-verify via the harness and honor One-Error-One-Rule appendix.

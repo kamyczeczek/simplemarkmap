@@ -23,6 +23,8 @@
     "build:safe": "node hooks/init.js && electron-builder --win nsis --config.directories.output=C:\\sm-build\\out",
     "build": "node hooks/init.js && electron-builder --win nsis",
     "log:create": "node scripts\\log-create.js",
+    "harness": "node harness\\verify.js",
+    "harness:constraints": "node harness\\verify.js --constraints-only",
     "verify": "node -e \"const {preToolUse} = require('./hooks/init.js'); const result = preToolUse('test', {}); if (result.error) { console.error(result.error); process.exit(1); } console.log('Constraints check passed'); process.exit(0);\"",
     "postinstall": "electron-builder install-app-deps"
   },
