@@ -1,7 +1,7 @@
 {
   "name": "simplemarkmap",
   "version": "1.0.0",
-  "description": "A local Markdown mind-map editor",
+   "description": "A local Markdown mind-map editor built with Electron. Visualize your Markdown files as interactive mind maps, navigate through hierarchical structures, and manage documents with drag-and-drop functionality.",
   "main": "src/electron-main.js",
   "author": "Mateusz",
   "license": "MIT",
