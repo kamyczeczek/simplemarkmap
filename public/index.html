@@ -419,6 +419,7 @@
         <button id="backBtn" class="ghost" disabled title="Go Back">←</button>
         <button id="forwardBtn" class="ghost" disabled title="Go Forward">→</button>
         <button id="openBtn" class="ghost">Open…</button>
+        <button id="editExternalBtn" class="ghost" title="Otwórz w edytorze systemowym">✎ Edytuj</button>
         <button id="newBtn" class="ghost" title="Create a new markdown map">+ New…</button>
         <button id="saveBtn" disabled>Save</button>
         <button id="addRootBtn" class="ghost">+ Root</button>
@@ -572,6 +573,17 @@ async function loadDir(dir) {
             }
         };
         document.getElementById("cancelPick").onclick = () => hidePicker();
+        document.getElementById("editExternalBtn").onclick = async () => {
+            if (currentFile) {
+                try {
+                    await window.electronAPI.openInDefaultEditor(currentFile);
+                } catch (err) {
+                    alert("Błąd podczas otwierania pliku: " + err.message);
+                }
+            } else {
+                flash("Najpierw otwórz plik mapy");
+            }
+        };
         document.getElementById("navUp").onclick = () => {
             // Determine if we are currently at the root folder.
             const isAtRoot = cwd === "." || cwd === "";

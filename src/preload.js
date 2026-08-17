@@ -14,5 +14,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   // Creates a new .md file via the native "Save" dialog. Resolves with the
   // created file's absolute path, null if cancelled, or { error } on failure.
   createFile: () => ipcRenderer.invoke("create-file"),
+
+  // Dodaj tę linię:
+  OpenInDefaultEditor: (path) => ipcRenderer.invoke("open-in-default-editor", path) [5]
 });
 

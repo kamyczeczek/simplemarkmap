@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, ipcMain } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron"); // Dodaj shell [2]
 const path = require("path");
 const crypto = require("crypto");
 const http = require("http");
@@ -51,11 +51,20 @@ ipcMain.handle("select-file", async () => {
   const absoluteFile = path.resolve(result.filePaths[0]);
   // Keep the server root stable. The API accepts this explicit absolute path,
   // allowing files from any location without disrupting another open document.
-  return absoluteFile;
+return absoluteFile;
+});
+
+// IPC handler do otwierania pliku w zewnętrznym edytorze
+ipcMain.handle("open-in-default-editor", async (event, filePath) => {
+ if (filePath) {
+ // shell.openPath otwiera plik przy użyciu domyślnego skojarzenia w systemie [3]
+ Return await shell.openPath(filePath);
+ }
+ Return { error: "No file path provided" };
 });
 
 // IPC handler for the "Link to file…" feature. Returns the chosen file's path
-// relative to the CURRENT markdown root WITHOUT changing the root, so it can be
+// relative to the CURRENT markdown root (root is NOT changed), so it can be
 // inserted as a relative link from the currently open file.
 ipcMain.handle("select-link-target", async () => {
   const result = await dialog.showOpenDialog(mainWindow, {
