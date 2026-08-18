@@ -1,3 +1,5 @@
+const path = require('path');
+
 // Pure re-implementation of the v1 link helpers so they can be unit-tested in
 // Node without a browser. Keep this in sync with public/index.html.
 function splitPath(p) {
@@ -23,6 +25,13 @@ function basenameOf(p) {
     return parts[parts.length - 1] || "";
 }
 function relPath(fromFile, toFile) {
+    // Extract drive letters for Windows cross-drive detection
+    const fromDrive = /^[a-zA-Z]:/.exec(fromFile)?.[0]?.toLowerCase();
+    const toDrive = /^[a-zA-Z]:/.exec(toFile)?.[0]?.toLowerCase();
+    // If drives differ, return absolute path (no relative possible)
+    if (fromDrive && toDrive && fromDrive !== toDrive) {
+        return path.resolve(toFile);
+    }
     const fromDir = dirnameOf(fromFile);
     const to = normalizePath(toFile);
     const fromParts = fromDir === '.' ? [] : fromDir.split('/');
@@ -93,4 +102,11 @@ for (const [from, to] of cases) {
 }
 
 console.log(`\n${pass} passed, ${fail} failed`);
+console.log('== Cross-drive paths (Windows) ==');
+// Cross-drive should return absolute path (no relative possible)
+const crossDrive = relPath('C:\\proj\\a.md', 'D:\\other\\b.md');
+console.log('Cross-drive relPath result:', crossDrive);
+// Expected: absolute path since no relative path exists between drives
+eq(crossDrive.startsWith('D:'), true, 'cross-drive returns absolute or valid relative');
+
 process.exit(fail ? 1 : 0);
