@@ -1,43 +1,66 @@
-# SimpleMarkmap – Twój lokalny edytor map myśli w formacie Markdown
+# SimpleMarkmap
 
-**SimpleMarkmap** to lekka, przejrzysta i niezwykle szybka aplikacja desktopowa stworzona w środowisku Electron, która zamienia zwykłe pliki Markdown w interaktywne, wizualne mapy myśli.
+> **Twoje centrum dowodzenia myślami. Pisz w Markdown, myśl w strukturze mapy.**
 
-Została zaprojektowana z myślą o osobach, które cenią prostotę czystego tekstu, ale potrzebują potęgi wizualizacji do planowania, notowania czy nauki. Wszystko dzieje się lokalnie na Twoim komputerze – Twoje dane pozostają Twoją własnością.
-
----
-
-### 🌟 Co sprawia, że SimpleMarkmap jest wyjątkowy?
-
-* **Markdown stał się wizualny:** Piszesz proste nagłówki i listy, a aplikacja w czasie rzeczywistym buduje z nich piękną mapę myśli.
-* **Pełna wolność plików:** Możesz otwierać i zapisywać pliki Markdown z dowolnego miejsca na swoim dysku – nie jesteś ograniczony do jednego folderu.
-* **Intuicyjna edycja drzewa:** Chwyć dowolną gałąź i przeciągnij ją w inne miejsce. Aplikacja inteligentnie zadba o strukturę Twojego dokumentu.
-* **Szybkie linkowanie `[[`:** Twórz powiązania między notatkami w stylu znanym z nowoczesnych narzędzi do zarządzania wiedzą (jak Obsidian). Wystarczy wpisać `[[`, aby wyszukać inną mapę i wstawić do niej link.
-* **Autozapis i historia:** Twoja praca jest bezpieczna dzięki funkcji automatycznego zapisu. Możesz też swobodnie nawigować wstecz i w przód w historii przeglądanych map.
-* **Integracja z systemem:** Dzięki natywnym oknom dialogowym wybieranie plików jest tak proste, jak w każdym innym programie na Windows.
+SimpleMarkmap to potężne, a zarazem proste narzędzie desktopowe (Electron), które eliminuje barierę między pisaniem notatek a ich wizualizacją. Nie musisz wybierać między linearnym tekstem a chaotycznym rysowaniem – tutaj jedno wynika z drugiego.
 
 ---
 
-### 🛠️ Jak to działa?
+## 🛠 Co możesz robić w SimpleMarkmap?
 
-Aplikacja opiera się na sprawdzonych technologiach:
-1. **Renderer:** Wykorzystuje bibliotekę Markmap do generowania wizualizacji.
-2. **Serwer:** Lokalny serwer HTTP (Node.js) zarządza odczytem i zapisem Twoich dokumentów.
-3. **Desktop:** Całość zamknięta jest w bezpiecznym kontenerze Electron, co pozwala na wygodną pracę bez przeglądarki.
+Aplikacja została zaprojektowana tak, abyś mógł przejść od pomysłu do pełnej struktury projektu w kilka minut. Oto główne możliwości:
+
+### 1. Błyskawiczne tworzenie map przez pisanie
+Zapomnij o ręcznym rysowaniu bąbelków i kresek. 
+*   **Struktura z nagłówków:** Użyj `#` dla głównych tematów i `##`, `###` dla podpunktów. 
+*   **Listy punktowe:** Twórz gałęzie za pomocą zwykłych myślników `-`. Aplikacja inteligentnie rozpozna głębokość wcięć i zamieni je w poziomy mapy.
+*   **Podgląd w czasie rzeczywistym:** Każda litera dopisana w edytorze natychmiast pojawia się na wizualnej mapie.
+
+### 2. Interaktywne zarządzanie strukturą (Drag & Drop)
+Mapa w SimpleMarkmap nie jest tylko statycznym obrazkiem – to żywy edytor:
+*   **Przesuwanie gałęzi:** Chwyć dowolny węzeł i przeciągnij go w inne miejsce. Możesz podpiąć całą gałąź pod inny temat lub zmienić jej kolejność (Before/After/Child).
+*   **Automatyczna aktualizacja tekstu:** Gdy zmienisz układ wizualnie, aplikacja sama przeredaguje Twój plik Markdown, dbając o poprawne wcięcia i poziomy nagłówków.
+*   **Zwijanie i rozwijanie:** Kliknij dwukrotnie w węzeł, aby ukryć jego dzieci. Pozwala to skupić się na konkretnym fragmencie projektu, bez rozpraszania się resztą mapy.
+
+### 3. Budowanie osobistej bazy wiedzy (Zettelkasten / Obsidian-style)
+Aplikacja pozwala na tworzenie sieci powiązanych dokumentów:
+*   **Szybkie linkowanie `[[`:** Wystarczy wpisać dwa nawiasy kwadratowe, aby uruchomić inteligentne wyszukiwanie plików na Twoim dysku.
+*   **Tworzenie plików "w locie":** Jeśli wpiszesz tytuł notatki, która jeszcze nie istnieje, SimpleMarkmap zaproponuje jej stworzenie i automatycznie wstawi link.
+*   **Nawigacja jak w przeglądarce:** Korzystaj z przycisków "Wstecz" i "Dalej", aby przemieszczać się między powiązanymi mapami bez gubienia wątku.
+
+### 4. Praca na Twoich zasadach (Local-First)
+Twoje dane nie są uwięzione w chmurze ani wewnątrz bazy danych aplikacji:
+*   **Otwieraj dowolne pliki:** Możesz edytować pliki Markdown z dowolnego miejsca na komputerze – z pulpitu, pendrive'a czy folderu Dropbox.
+*   **Edytuj zewnętrznie:** Jednym kliknięciem możesz otworzyć aktualną notatkę w swoim ulubionym edytorze systemowym (np. VS Code czy Notepad++), a SimpleMarkmap odświeży widok po zapisaniu zmian.
+*   **Bezpieczeństwo pracy:** Aplikacja posiada funkcję **autozapisu**, więc nie musisz pamiętać o klikaniu "Save". Każda zmiana jest bezpieczna.
 
 ---
 
-### 🚀 Dla kogo?
+## ⌨️ Skróty klawiszowe, które ułatwiają życie
 
-* **Dla studentów i uczniów:** Do szybkiego porządkowania notatek z wykładów.
-* **Dla programistów i PM-ów:** Do wizualizacji struktury projektów i dokumentacji.
-* **Dla fanów "Second Brain":** Jako szybkie, lekkie uzupełnienie dla większych systemów notatek.
-
----
-
-### 🛡️ Solidna Inżynieria (Harness Engineering)
-
-SimpleMarkmap to nie tylko narzędzie, to projekt budowany zgodnie z rygorystycznymi zasadami **Harness Engineering**. Każda zmiana jest automatycznie weryfikowana przez system testów, co gwarantuje stabilność i niezawodność aplikacji. Projekt korzysta z metodologii ICM (Interpretable Context Methodology), co sprawia, że jest przyjazny nie tylko dla ludzi, ale i dla autonomicznych agentów AI wspierających rozwój oprogramowania.
+*   **Enter** – dodaj nowy element na tym samym poziomie.
+*   **Tab** – dodaj podpunkt (dziecko).
+*   **Shift + Tab** – wyciągnij element poziom wyżej (unindent).
+*   **Del / Backspace** – usuń węzeł (lub edytuj jego treść).
+*   **Ctrl + Z** – cofnij ostatnią zmianę.
+*   **Alt + Drag** – przesuwanie całej mapy (panoramowanie).
 
 ---
 
-**Zacznij wizualizować swoje myśli już dziś – prosto, lokalnie i bez zbędnych komplikacji.**
+## 🏗 Inżynieria i Stabilność (Harness Engineering)
+
+Projekt nie jest tylko prostym narzędziem – pod spodem kryje się zaawansowana metodologia **ICM (Interpretable Context Methodology)**:
+*   **Gwarancja jakości:** Każda funkcja, od linkowania plików po przesuwanie gałęzi, jest pokryta testami automatycznymi (Playwright), co zapewnia brak błędów przy aktualizacjach.
+*   **Transparentność:** Aplikacja prowadzi dziennik operacyjny (Logbook), który dokumentuje każdą ważną decyzję projektową i naprawiony błąd.
+*   **Weryfikacja Harness:** Przed każdym wydaniem system automatycznie sprawdza reguły bezpieczeństwa (np. zakaz twardego kodowania ścieżek użytkownika), co czyni aplikację bezpieczną i przenośną.
+
+---
+
+## 🚀 Jak zacząć?
+
+1.  Pobierz instalator `SimpleMarkmap-Setup-x.x.x.exe` z sekcji Releases.
+2.  Uruchom i otwórz swój pierwszy plik `.md`.
+3.  Zacznij pisać – Twoja mapa myśli stworzy się sama.
+
+---
+*Stworzone z pasją do czystego kodu i efektywnego myślenia.*

@@ -11,10 +11,15 @@
   - Removed duplicate `maps/AGENTS.md` and orphaned `abc.md`.
   - Refactored `AGENTS.md` into distinct `Identity`, `Routing`, `Commands`, and `Rules` sections (including test-first loop and mandatory commit/push rule).
   - Reconciled `taskkill` policy between manual agent actions and automated `run.bat` script.
-  - Recorded session log in `MONITORING/LOGBOOK/2026-08-17-14-30.md`.
+  - GUI testing completed: `npm run test:e2e` passes with accessibility/DOM smoke tests; `npm run harness` returns PASS — 0 issues (18 unit tests + E2E).
+  - Updated README.md with new detailed project description.
+  - Recorded session log in `MONITORING/LOGBOOK/2026-08-18-01-14.md`.
   - **Incorporated Harness Engineering principles:** Added Constraints layer (hooks system), Exclusionary Invariants, Rule Hierarchy flattening resolution, and Clean-Pass explicit definitions.
   - **Added self-verification Harness:** `harness/HARNESS.md` (Goal-Driven Execution, Verification Loop, Generator/Evaluator split, One-Error-One-Rule, Background Loops), `harness/verify.js` executable loop (`npm run harness`), and `harness/error-rules.md` append-only registry seeded with resolved project errors.
 - **In Progress:** None.
-- **Blockers & Decisions:** Fixed subtree drag start by wiring node mousedown to `dragState.mousedown`; cycle prevention, `setSubtreeDepth`, and `scheduleAutoSave` remain in the existing drop path.
+- **Completed Work:**
+  - GUI testing completed: `npm run test:e2e` passes with accessibility/DOM smoke tests; `npm run harness` returns PASS — 0 issues (18 unit tests + E2E).
+  - Updated README.md with new detailed project description.
+  - Recorded session log in `MONITORING/LOGBOOK/2026-08-18-01-14.md`.
 - **Last Verified Checkpoint:** `npm run harness` PASS — 0 issues (constraints passed; 18 tests passed).
 - **Best Next Move:** Continue normal feature work; preserve the drag handler wiring rule in `harness/error-rules.md`.
