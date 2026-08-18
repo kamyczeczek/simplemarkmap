@@ -426,7 +426,7 @@
         <button id="forwardBtn" class="ghost" disabled title="Go Forward">→</button>
         <span id="crumbs">—</span>
         <button id="openBtn" class="ghost">Open…</button>
-        <button id="editExternalBtn" class="ghost" title="Otwórz w edytorze systemowym">✎ Edytuj</button>
+        <button id="editExternalBtn" class="ghost" title="Open in external editor">✎ Edit</button>
         <button id="newBtn" class="ghost" title="Create a new markdown map">+ New…</button>
         <button id="saveBtn" disabled>Save</button>
         <button id="addRootBtn" class="ghost">+ Root</button>
@@ -585,13 +585,13 @@ async function loadDir(dir) {
                 try {
                     const result = await window.electronAPI.openInDefaultEditor(currentFile);
                     if (result && result.success) {
-                        flash("Otwarto w edytorze");
+                        flash("Opened in editor");
                     }
                 } catch (err) {
-                    alert("Błąd podczas otwierania pliku: " + err.message);
+                    alert("Error opening file: " + err.message);
                 }
             } else {
-                flash("Najpierw otwórz plik mapy");
+                flash("Open a map file first");
             }
         };
         document.getElementById("navUp").onclick = () => {
@@ -1606,6 +1606,12 @@ async function loadDir(dir) {
                 canvasEl.classList.remove("alt-pan");
             }
         });
+// Cleanup drag state if window loses focus (e.g., Win+Shift+S screenshot)
+window.addEventListener("blur", () => {
+  if (dragState.active) {
+    dragState.cleanup();
+  }
+});
 
         /* ---------------- Node Drag & Drop (subtree move) ---------------- */
 

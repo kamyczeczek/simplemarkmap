@@ -16,8 +16,9 @@
 | 2026-08-17 | Deleting a node also deleted its newly-focused neighbor (Backspace/Delete) | Event bubbling: local `onNodeKey` handled delete, then bubbled to global document handler | In node key handlers, call `e.preventDefault()` + `e.stopPropagation()` once the node handler handles it | HARNESS move 2 (self-verify); keep `stopPropagation()` on the node delete path |
 | 2026-08-17 | First opened map could not be reached via Back (empty history stack) | `openFile(lastFile, false)` suppressed push to history on load | Initial map must be pushed with `pushToHistory=true` so Back works from position 0 | Unit/e2e test asserting back-navigation from cold start |
 | 2026-08-17 | Markdown bullets broke in Typora (`-` without space, or H7 `#######`) | Serializer emitted invalid Markdown (no space after marker, headings beyond H6) | Lists always serialize as `- `; headings clamp to `Math.min(6, depth)` | Parser/serializer round-trip test in `tests/` |
-
 | 2026-08-18 | `relPath('C:\x\a.md', 'D:\y\b.md')` returned `../../D:/other/b.md` instead of absolute path | Cross-drive paths have no valid relative path; `relPath` didn't detect different drive letters | `relPath` must detect different Windows drive letters and return absolute path for cross-drive targets | Test in `tests/test-relpath.js`; `npm test` runs relpath tests |
+| 2026-08-18 | Drag-ghost artefact remains after system screenshot (Win+Shift+S) | System modal steals window focus; `mouseup` never reaches app → cleanup() not called | Add `window.addEventListener("blur", ...)` to invoke `dragState.cleanup()` on focus loss | Manual test: start drag → Win+Shift+S → artefact must vanish; verify in `harness/verify.js` |
+
 ## How to add a rule
 1. When verify fails or the human points out a repeated mistake, open this file.
 2. Add one row capturing Error / Root cause / Rule / Enforce via.
